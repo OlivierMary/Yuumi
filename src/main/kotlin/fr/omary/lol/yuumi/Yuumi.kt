@@ -55,7 +55,10 @@ fun validateChampion(champId: Int) {
     setPerks(champId)
     setItemsSets(champId)
     setSummonerSpells(champId)
-    sendSystemNotification("Champ set ${championsByIdChamp[champId]?.name} : Sent", "INFO")
+    sendSystemNotification(
+        "Champ set ${championsByIdChamp[champId]?.name} - $assignedPosition - $gameMode : Sent",
+        "INFO"
+    )
     stopLoading()
 }
 
@@ -113,13 +116,17 @@ private fun setCurrentPerk(champId: Int) {
 }
 
 private fun commitPerks(champId: Int) {
-    perksByIdChamp[champId]!!.sortedBy { it.current }.map { it to sendPage(it) }.filter { it.first.current }.forEach {
-        run {
-            sendSystemNotification("Champ set ${championsByIdChamp[champId]?.name} : Not Enough runes pages", "WARNING")
-            resetGeneratedExistingPerks()
-            sendPage(it.first)
+    perksByIdChamp[champId]!!.sortedBy { it.current }.map { it to sendPage(it) }
+        .filter { it.first.current != null && it.first.current }.forEach {
+            run {
+                sendSystemNotification(
+                    "Champ set ${championsByIdChamp[champId]?.name} : Not Enough runes pages",
+                    "WARNING"
+                )
+                resetGeneratedExistingPerks()
+                sendPage(it.first)
+            }
         }
-    }
 }
 
 private fun setItemsSets(champId: Int) {
