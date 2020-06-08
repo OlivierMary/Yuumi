@@ -36,6 +36,7 @@ var gameMode: String? = null
 
 fun startYuumi() {
     println("Waiting for client connect.")
+    ClientApi.setDisableEndpointWarnings(true)
     api.addClientConnectionListener(object : ClientConnectionListener {
         override fun onClientDisconnected() {
             println("Client disconnected")
