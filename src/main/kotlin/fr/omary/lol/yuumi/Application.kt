@@ -21,7 +21,7 @@ private const val defaultToolTip = "Lol Yuumi"
 
 fun main() {
     try {
-        UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel")
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
     } catch (ex: UnsupportedLookAndFeelException) {
         ex.printStackTrace()
     } catch (ex: IllegalAccessException) {
