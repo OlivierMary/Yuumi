@@ -1,166 +1,47 @@
 package fr.omary.lol.yuumi
 
 import com.beust.klaxon.JsonObject
-import com.beust.klaxon.Klaxon
-import com.stirante.lolclient.ClientApi
-import com.stirante.lolclient.ClientConnectionListener
-import com.stirante.lolclient.ClientWebSocket
-import com.stirante.lolclient.ClientWebSocket.SocketListener
 import fr.omary.lol.yuumi.models.ItemDatas2
 import fr.omary.lol.yuumi.models.PositionDatas
-import fr.omary.lol.yuumi.models.UggARAMDatas
-import fr.omary.lol.yuumi.models.UggDatas
 import generated.*
-import org.apache.commons.lang3.builder.ToStringBuilder
-import org.apache.commons.lang3.builder.ToStringStyle
-import org.apache.http.client.methods.HttpGet
-import org.apache.http.impl.client.CloseableHttpClient
-import org.apache.http.impl.client.HttpClients
-import org.apache.http.util.EntityUtils
 import java.lang.Thread.sleep
 
-val api = ClientApi()
-val httpclient: CloseableHttpClient = HttpClients.createDefault()
-var socket: ClientWebSocket? = null
+private val perksByIdChamp: MutableMap<Int, List<LolPerksPerkPageResource>> = mutableMapOf()
+private val championsByIdChamp: MutableMap<Int, LolChampionsCollectionsChampion> = mutableMapOf()
+private val itemsSetsByIdChamp: MutableMap<Int, List<LolItemSetsItemSet>> = mutableMapOf()
+private val summonerSpellsByChamp: MutableMap<Int, List<Pair<String?, List<Int>?>>> = mutableMapOf()
 
-val perksByIdChamp: MutableMap<Int, List<LolPerksPerkPageResource>> = mutableMapOf()
-val championsByIdChamp: MutableMap<Int, LolChampionsCollectionsChampion> = mutableMapOf()
-val itemsSetsByIdChamp: MutableMap<Int, List<LolItemSetsItemSet>> = mutableMapOf()
-val summonerSpellsByChamp: MutableMap<Int, List<Pair<String?, List<Int>?>>> = mutableMapOf()
+private var uniqueMaps = mutableListOf<LolMapsMaps>()
+private lateinit var lolItemSetsItemSets: LolItemSetsItemSets
+private lateinit var summoner: LolSummonerSummoner
+private var gameMode: String? = null
+private var assignedPosition: String? = null
 
-var uniqueMaps = mutableListOf<LolMapsMaps>()
-lateinit var lolItemSetsItemSets: LolItemSetsItemSets
-lateinit var summoner: LolSummonerSummoner
-var gameMode: String? = null
-var assignedPosition: String? = null
-
-fun startYuumi() {
-    println("Waiting for client connect.")
-    ClientApi.setDisableEndpointWarnings(true)
-    api.addClientConnectionListener(object : ClientConnectionListener {
-        override fun onClientDisconnected() {
-            println("Client disconnected")
-            socket?.close()
-        }
-
-        override fun onClientConnected() {
-            println("Client connected")
-            try {
-                openSocket()
-                if (socket == null || !socket!!.isOpen) {
-                    return
-                }
-                initStaticVariables()
-                notifConnected()
-
-                socket?.setSocketListener(object : SocketListener {
-                    override fun onEvent(event: ClientWebSocket.Event) {
-                        handleValidateChampion(event)
-                        handleChooseChampion(event)
-                    }
-
-                    override fun onClose(code: Int, reason: String) {
-                        println("Socket closed, reason: $reason")
-                    }
-                })
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    })
-}
-
-fun stopYuumi() {
-    sendLoLNotif("Disconnected", "Disconnected to Yuumi, See you later", 1)
-    socket?.close()
-    api.stop()
-}
-
-private fun notifConnected() {
-    sendLoLNotif("Connected", "Connected to Yuumi, Enjoy", 11)
-}
-
-fun sendLoLNotif(title: String, detail: String, idImage: Int) {
-    val notif = PlayerNotificationsPlayerNotificationResource()
-    notif.titleKey = "pre_translated_title"
-    notif.detailKey = "pre_translated_details"
-    val data = JsonObject()
-    data["title"] = title
-    data["details"] = detail
-    notif.data = data
-    notif.iconUrl = "https://ddragon.leagueoflegends.com/cdn/10.11.1/img/champion/Yuumi.png"
-    notif.backgroundUrl = "https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Yuumi_$idImage.jpg"
-    api.executePost("/player-notifications/v1/notifications", notif)
-}
-
-private fun openSocket() {
-    var maxTry = 20
-    do {
-        println("Socket not connected will (re)try...")
-        sleep(1000)
-        try {
-            if (socket != null) {
-                socket?.close()
-            }
-            socket = api.openWebSocket()
-        } catch (e: Exception) {
-            // nothing
-        }
-        maxTry--
-    } while (socket == null || !socket?.isOpen!! || maxTry < 0)
-    println("Socket connected")
-}
-
-
-private fun initStaticVariables() {
-    var tempSummoner: LolSummonerSummoner?
-    do {
-        tempSummoner = setSummoner()
-        sleep(1000)
-    } while (tempSummoner == null)
-
-    summoner = tempSummoner
+fun initStaticVariables() {
+    summoner = waitToGetSummoner()!!
     println("Summoner : ${summoner.displayName}")
-    val maps = api.executeGet("/lol-maps/v2/maps", Array<LolMapsMaps>::class.java)
+    val maps = getMaps()
     val uniqueMapsId = maps.map(LolMapsMaps::id).distinct()
     uniqueMaps = uniqueMapsId.map { id -> maps.first { m -> m.id == id } }.toMutableList()
     for (uniqueMap in uniqueMaps) {
         println("Map : [${uniqueMap.gameMode}, ${uniqueMap.mapStringId}, ${uniqueMap.gameModeName}] ")
     }
-    lolItemSetsItemSets = api.executeGet(
-        "/lol-item-sets/v1/item-sets/${summoner.summonerId}/sets",
-        LolItemSetsItemSets::class.java
-    )
+    lolItemSetsItemSets = getItemsSets(summoner.summonerId)
 }
 
-private fun setSummoner() = api.executeGet("/lol-summoner/v1/current-summoner", LolSummonerSummoner::class.java)
+fun getChampion(champId: Int) = championsByIdChamp[champId]
 
-private fun handleValidateChampion(event: ClientWebSocket.Event) {
-    if (event.eventType != "Delete" && event.uri == "/lol-champ-select/v1/current-champion") {
-        validateChampion(event.data as Int)
-    }
+private fun waitToGetSummoner(): LolSummonerSummoner? {
+    var tempSummoner: LolSummonerSummoner?
+    do {
+        tempSummoner = getCurrentSummoner()
+        sleep(1000)
+    } while (tempSummoner == null)
+    return tempSummoner
 }
 
-private fun handleChooseChampion(event: ClientWebSocket.Event) {
-    if (event.eventType != "Delete" && event.uri.startsWith("/lol-champ-select/v1/grid-champions/")) {
-        if (!championsByIdChamp.containsKey((event.data as LolChampSelectChampGridChampion).id) || championsByIdChamp[((event.data as LolChampSelectChampGridChampion).id)] == null) {
-            processChampion((event.data as LolChampSelectChampGridChampion).id)
-        } else {
-            println("${championsByIdChamp[(event.data as LolChampSelectChampGridChampion).id]?.name} already processed")
-        }
-    }
-}
-
-private fun setCurrentGameMode() {
-    gameMode = api.executeGet("/lol-lobby/v2/lobby", LolLobbyLobbyDto::class.java)?.gameConfig?.gameMode
-    println("Game Mode : $gameMode")
-}
-
-private fun setAssignerPosition() {
-    val me = api.executeGet(
-        "/lol-lobby-team-builder/champ-select/v1/session",
-        LolLobbyTeamBuilderChampSelectSession::class.java
-    )?.myTeam?.first { x -> x.summonerId == summoner.summonerId }
+private fun refreshAssignerPosition() {
+    val me = getTeam()?.first { x -> x.summonerId == summoner.summonerId }
     assignedPosition = me?.assignedPosition
     if (assignedPosition == null || assignedPosition == "") {
         assignedPosition = "ARAM"
@@ -171,7 +52,6 @@ private fun setAssignerPosition() {
 fun validateChampion(champId: Int) {
     startLoading("Send [${championsByIdChamp[champId]?.name}]")
     checkProcessedOrWait(champId)
-    printStatus(champId)
     setPerks(champId)
     setItemsSets(champId)
     setSummonerSpells(champId)
@@ -179,35 +59,10 @@ fun validateChampion(champId: Int) {
     stopLoading()
 }
 
-fun printStatus(champId: Int) {
-    println(
-        """-----------------------------------------------------------
-    Run with:
-    Game Mode : $gameMode
-    Assigned Position : $assignedPosition
-    Champion : ${reflexToString(championsByIdChamp[champId])}
-    Perks : ${reflexToString(perksByIdChamp[champId])}
-    Items : ${reflexToString(itemsSetsByIdChamp[champId])}
-    Summoner Spells: ${reflexToString(summonerSpellsByChamp[champId])}
-    -----------------------------------------------------------""".trimIndent()
-    )
-
-}
-
-private fun reflexToString(l: List<Any?>?): String {
-    return "[${l?.joinToString(",\n") { i -> reflexToString(i) }}]"
-}
-
-private fun reflexToString(o: Any?): String {
-    return ToStringBuilder.reflectionToString(o, ToStringStyle.MULTI_LINE_STYLE)
-}
-
 private fun checkProcessedOrWait(champId: Int) {
-    if (gameMode == null || gameMode == "") {
-        setCurrentGameMode()
-    }
+    gameMode = getCurrentGameMode()
     if (assignedPosition == null || assignedPosition == "") {
-        setAssignerPosition()
+        refreshAssignerPosition()
     }
     // In case of select too fast if champ not already processed
     if (!championsByIdChamp.containsKey(champId) || championsByIdChamp[champId] == null) {
@@ -234,9 +89,9 @@ private fun setPerks(champId: Int) {
 }
 
 private fun resetGeneratedExistingPerks() {
-    val existingPerks = api.executeGet("/lol-perks/v1/pages", Array<LolPerksPerkPageResource>::class.java)
+    val existingPerks = getPages()
     existingPerks.filter { p -> p.name.startsWith("GENERATED") }
-        .forEach { api.executeDelete("/lol-perks/v1/pages/${it.id}") }
+        .forEach { deletePages(it) }
 }
 
 private fun setCurrentPerk(champId: Int) {
@@ -258,25 +113,19 @@ private fun setCurrentPerk(champId: Int) {
 }
 
 private fun commitPerks(champId: Int) {
-    perksByIdChamp[champId]!!.sortedBy { it.current }.map { it to tryAddPerk(it) }.filter { it.first.current }.forEach {
+    perksByIdChamp[champId]!!.sortedBy { it.current }.map { it to sendPage(it) }.filter { it.first.current }.forEach {
         run {
             sendSystemNotification("Champ set ${championsByIdChamp[champId]?.name} : Not Enough runes pages", "WARNING")
             resetGeneratedExistingPerks()
-            tryAddPerk(it.first)
+            sendPage(it.first)
         }
     }
-}
-
-private fun tryAddPerk(perk: LolPerksPerkPageResource): Boolean {
-    val resultAddPerk = api.executePost("/lol-perks/v1/pages", perk)
-    println("Runes : $resultAddPerk")
-    return resultAddPerk
 }
 
 private fun setItemsSets(champId: Int) {
     if (itemsSetsByIdChamp.containsKey(champId) && itemsSetsByIdChamp[champId] != null) {
         resetAndPopulateItemsSets(champId)
-        commitItemsSets()
+        sendItems(summoner.summonerId, lolItemSetsItemSets)
     } else {
         println("Items Set : no datas")
     }
@@ -287,19 +136,10 @@ private fun resetAndPopulateItemsSets(champId: Int) {
     lolItemSetsItemSets.itemSets?.addAll(itemsSetsByIdChamp[champId]!!)
 }
 
-private fun commitItemsSets() {
-    println(
-        "Items Set : ${api.executePut(
-            "/lol-item-sets/v1/item-sets/${summoner.summonerId}/sets",
-            lolItemSetsItemSets
-        )}"
-    )
-}
-
 private fun setSummonerSpells(champId: Int) {
     if (summonerSpellsByChamp.containsKey(champId) && summonerSpellsByChamp[champId] != null) {
         val spells = prepareSummonerSpells(champId)
-        commitSummonerSpells(spells)
+        sendSummonerSpells(spells)
     } else {
         println("Summoner Spells : no datas")
     }
@@ -314,16 +154,7 @@ private fun prepareSummonerSpells(champId: Int): JsonObject = JsonObject().apply
     }
 }
 
-private fun commitSummonerSpells(spells: JsonObject) {
-    println(
-        "Summoner Skills : ${api.executePatch(
-            "/lol-lobby-team-builder/champ-select/v1/session/my-selection",
-            spells
-        )} "
-    )
-}
-
-private fun processChampion(champId: Int) {
+fun processChampion(champId: Int) {
     startLoading("Process [$champId]...")
     if (champId < 1) {
         return
@@ -331,14 +162,14 @@ private fun processChampion(champId: Int) {
 
     var champion = championsByIdChamp[champId]
     if (champion == null) {
-        champion = getChampion(champId)
+        champion = getChampion(summoner.summonerId, champId)
     }
     if (champion == null) {
         return // maybe client closed before process
     }
     championsByIdChamp[champId] = champion
 
-    startLoading("Process [${champion.name}]...")
+    startLoading("Process [ ${champion.id} -> ${champion.name}]...")
     println("${champion.name} process...")
 
     val rankedDatas = getUggRankedOverviewDatas(champion)
@@ -430,24 +261,5 @@ private fun generatePerk(
     name = "GENERATED ${champion?.name} ${uniqueMap.mapStringId} ${role?.name}"
 }
 
-private fun getUggRankedOverviewDatas(champion: LolChampionsCollectionsChampion?): UggDatas? =
-    Klaxon().parse<UggDatas>(
-        EntityUtils.toString(
-            httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/10_11/ranked_solo_5x5/${champion?.id}/1.4.0.json")).entity
-        )
-    )
-
-
-private fun getUggAramOverviewDatas(champion: LolChampionsCollectionsChampion?): UggARAMDatas? =
-    Klaxon().parse<UggARAMDatas>(
-        EntityUtils.toString(
-            httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/10_11/normal_aram/${champion?.id}/1.4.0.json")).entity
-        )
-    )
-
-private fun getChampion(champId: Int): LolChampionsCollectionsChampion? = api.executeGet(
-    "/lol-champions/v1/inventories/${summoner.summonerId}/champions/${champId}",
-    LolChampionsCollectionsChampion::class.java
-)
 
 

@@ -117,16 +117,16 @@ class PositionDatas(name: String, source: List<Any>?) {
         SkillsOrderDatas(source?.get(4) as List<Any>)
     val secondaryItems: SecondaryItemsDatas? =
         SecondaryItemsDatas(source?.get(5) as List<Any>)
-    val winLoose: WinLooseDatas? =
-        WinLooseDatas(source?.get(6) as List<Any>)
+    val winTotal: WinTotalDatas? =
+        WinTotalDatas(source?.get(6) as List<Any>)
 
     override fun toString(): String {
-        return "PositionDatas(runes=$runes, summonerSpells=$summonerSpells, startItems=$startItems, mainsItems=$mainsItems, skillsOrder=$skillsOrder, secondaryItems=$secondaryItems, winLoose=$winLoose)"
+        return "PositionDatas(runes=$runes, summonerSpells=$summonerSpells, startItems=$startItems, mainsItems=$mainsItems, skillsOrder=$skillsOrder, secondaryItems=$secondaryItems, winLoose=$winTotal)"
     }
 
 }
 
-class RunesDatas(source: List<Any>?, sourceAdditionnal: List<Any>?): WinLooseDatas(source) {
+class RunesDatas(source: List<Any>?, sourceAdditionnal: List<Any>?): WinTotalDatas(source) {
     val masteryA: Int = source!![2] as Int
     val masteryB: Int = source!![3] as Int
     val additionnalMastery: List<Int> =  run {val result = source!![4] as MutableList<Int>
@@ -139,7 +139,7 @@ class RunesDatas(source: List<Any>?, sourceAdditionnal: List<Any>?): WinLooseDat
 
 }
 
-class SummonerSpellsDatas(source: List<Any>?) : WinLooseDatas(source) {
+class SummonerSpellsDatas(source: List<Any>?) : WinTotalDatas(source) {
     val summonerSpells: List<Int> = source!![2] as List<Int>
     override fun toString(): String {
         return "SummonerSpellsDatas(summonerSpells=$summonerSpells) ${super.toString()}"
@@ -147,7 +147,7 @@ class SummonerSpellsDatas(source: List<Any>?) : WinLooseDatas(source) {
 
 }
 
-class ItemsDatas(source: List<Any>?) : WinLooseDatas(source) {
+class ItemsDatas(source: List<Any>?) : WinTotalDatas(source) {
     val itemsId: List<Int> = source!![2] as List<Int>
     override fun toString(): String {
         return "ItemsDatas(itemsId=$itemsId) ${super.toString()}"
@@ -155,7 +155,7 @@ class ItemsDatas(source: List<Any>?) : WinLooseDatas(source) {
 
 }
 
-class ItemDatas(source: List<Any>?) : WinLooseDatas(source) {
+class ItemDatas(source: List<Any>?) : WinTotalDatas(source) {
     val itemId: Int = source!![2] as Int
     override fun toString(): String {
         return "ItemDatas(itemId=$itemId) ${super.toString()}"
@@ -171,7 +171,7 @@ class ItemDatas2(source: List<Any>?)  {
     }
 }
 
-class SkillsOrderDatas(source: List<Any>?) : WinLooseDatas(source) {
+class SkillsOrderDatas(source: List<Any>?) : WinTotalDatas(source) {
     val skillOrder: List<String> = source!![2] as List<String>
     val skillPriority: String= source!![3] as String
     override fun toString(): String {
@@ -202,7 +202,7 @@ class SecondaryItemsDatas(source: List<Any>?) {
 
 }
 
-open class WinLooseDatas(source: List<Any>?) {
+open class WinTotalDatas(source: List<Any>?) {
     val win: Int = source!![0] as Int
     val total: Int = source!![1] as Int
     override fun toString(): String {
