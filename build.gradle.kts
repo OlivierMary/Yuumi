@@ -1,5 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
     kotlin("jvm") version "1.3.72"
     id("com.github.johnrengelman.shadow") version "5.2.0"
@@ -11,12 +9,12 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-    maven("https://jitpack.io")
     jcenter()
+    maven("https://jitpack.io")
 }
 
 tasks {
-    named<ShadowJar>("shadowJar") {
+    shadowJar{
         archiveBaseName.set("shadow-yuumi")
         mergeServiceFiles()
         manifest {
