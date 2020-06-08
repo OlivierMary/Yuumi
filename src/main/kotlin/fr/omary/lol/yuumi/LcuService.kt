@@ -16,6 +16,7 @@ fun startYuumi() {
         override fun onClientDisconnected() {
             println("Client disconnected")
             socket?.close()
+            waitingConnect()
         }
 
         override fun onClientConnected() {
@@ -41,6 +42,7 @@ fun startYuumi() {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+            connected()
         }
     })
 }

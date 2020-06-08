@@ -10,13 +10,19 @@ import kotlin.system.exitProcess
 
 // Source Example : https://docs.oracle.com/javase/tutorial/displayCode.html?code=https://docs.oracle.com/javase/tutorial/uiswing/examples/misc/TrayIconDemoProject/src/misc/TrayIconDemo.java
 
-var sendNotifications: Boolean = true
-val normalImage = createImage("images/Yuumi.png", "tray icon")
-val loadingImage = createImage("images/loading.gif", "tray icon")
-val trayIcon = TrayIcon(normalImage)
-val messages: MutableList<Pair<LocalDateTime, String>> = mutableListOf()
-var champMenu = Menu("Send Synchronized Champion")
-private const val defaultToolTip = "Lol Yuumi"
+private var sendNotifications: Boolean = true
+private val connected = createImage("images/Yuumi.png", "tray icon")
+private val waiting = createImage("images/waitingConnect.png", "tray icon")
+private val loading = createImage("images/loading.gif", "tray icon")
+private val trayIcon = TrayIcon(waiting)
+private val messages: MutableList<Pair<LocalDateTime, String>> = mutableListOf()
+private var champMenu = Menu("Send Synchronized Champion")
+private var champMenuAtoG = Menu("[A-G]")
+private var champMenuHtoM = Menu("[H-M]")
+private var champMenuNtoS = Menu("[N-S]")
+private var champMenuTtoZ = Menu("[T-Z]")
+private const val defaultToolTip = "Yuumi"
+private const val waitingMessage = "Yuumi : Waiting LoL client to connect"
 
 
 fun main() {
@@ -33,7 +39,6 @@ fun main() {
     }
     UIManager.put("swing.boldMetal", false)
     SwingUtilities.invokeLater { createAndShowGUI() }
-
     startYuumi()
 }
 
@@ -61,12 +66,20 @@ private fun createAndShowGUI() {
     popupMenu.addSeparator()
     popupMenu.add(exitItem)
 
+    champMenu.add(champMenuAtoG)
+    champMenu.add(champMenuHtoM)
+    champMenu.add(champMenuNtoS)
+    champMenu.add(champMenuTtoZ)
+
     // Initial champ = empty
-    champMenu.add(generateItemMenu(Pair(0, "Empty for now")))
+    champMenuAtoG.add(generateItemMenu(Pair(0, "Empty for now")))
+    champMenuHtoM.add(generateItemMenu(Pair(0, "Empty for now")))
+    champMenuNtoS.add(generateItemMenu(Pair(0, "Empty for now")))
+    champMenuTtoZ.add(generateItemMenu(Pair(0, "Empty for now")))
 
     trayIcon.popupMenu = popupMenu
     trayIcon.isImageAutoSize = true
-    trayIcon.toolTip = defaultToolTip
+    trayIcon.toolTip = waitingMessage
     try {
         tray.add(trayIcon)
     } catch (e: AWTException) {
@@ -119,19 +132,36 @@ fun sendSystemNotification(message: String, level: String) {
     )
 }
 
+fun waitingConnect() {
+    trayIcon.image = waiting
+    trayIcon.toolTip = waitingMessage
+}
+
+fun connected(){
+    stopLoading()
+}
+
 fun startLoading(actionMessage: String = "Processing...") {
-    trayIcon.image = loadingImage
+    trayIcon.image = loading
     trayIcon.toolTip = actionMessage
 }
 
 fun stopLoading() {
-    trayIcon.image = normalImage
+    trayIcon.image = connected
     trayIcon.toolTip = defaultToolTip
 }
 
 fun refreshChampionList(championsNames: List<Pair<Int, String>>) {
-    champMenu.removeAll()
-    championsNames.forEach { champMenu.add(generateItemMenu(it)) }
+    champMenuAtoG.removeAll()
+    champMenuHtoM.removeAll()
+    champMenuNtoS.removeAll()
+    champMenuTtoZ.removeAll()
+    championsNames.forEach { when (it.second.first()){
+        in 'A'..'G' -> champMenuAtoG.add(generateItemMenu(it))
+        in 'H'..'M' -> champMenuHtoM.add(generateItemMenu(it))
+        in 'N'..'S' -> champMenuNtoS.add(generateItemMenu(it))
+        in 'T'..'Z' -> champMenuTtoZ.add(generateItemMenu(it))
+    } }
 }
 
 fun generateItemMenu(champPair: Pair<Int, String>): MenuItem {
