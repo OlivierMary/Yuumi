@@ -109,15 +109,7 @@ private fun showHistory() {
     )
 }
 
-fun createImage(path: String, description: String?): Image? {
-    val imageURL = Thread.currentThread().contextClassLoader.getResource(path)
-    return if (imageURL == null) {
-        println("Resource not found: $path")
-        null
-    } else {
-        ImageIcon(imageURL, description).image
-    }
-}
+fun createImage(path: String, description: String?): Image = ImageIcon(Thread.currentThread().contextClassLoader.getResource(path), description).image
 
 fun sendSystemNotification(message: String, level: String) {
     messages.add(Pair(LocalDateTime.now(), message))
