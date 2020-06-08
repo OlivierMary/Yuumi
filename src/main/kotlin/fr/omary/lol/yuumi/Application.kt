@@ -71,7 +71,7 @@ private fun createAndShowGUI() {
         tray.add(trayIcon)
     } catch (e: AWTException) {
         println("TrayIcon could not be added.")
-        return
+        throw e
     }
     trayIcon.addActionListener {
         showAbout()
