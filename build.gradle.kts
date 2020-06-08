@@ -18,13 +18,13 @@ tasks {
         archiveBaseName.set("shadow-yuumi")
         mergeServiceFiles()
         manifest {
-            attributes(mapOf("Main-Class" to "fr.omary.lol.yuumi.Application",
+            attributes(mapOf("Main-Class" to "fr.omary.lol.yuumi.ApplicationKt",
             "Implementation-Version" to version))
         }
     }
     createExe {
         outfile = "${rootProject.name}.exe"
-        mainClassName = "fr.omary.lol.yuumi.Application"
+        mainClassName = "fr.omary.lol.yuumi.ApplicationKt"
         icon = "$projectDir/assets/favicon.ico"
         productName = "Yuumi"
         jar = "${projectDir}/build/libs/shadow-yuumi-${rootProject.version}-all.jar"

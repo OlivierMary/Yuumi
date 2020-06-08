@@ -6,8 +6,6 @@ import com.beust.klaxon.Json
 data class UggDatas(
     @Json(name = "12")
     val world: WorldDatas?
-
-
 ) {
     override fun toString(): String {
         return "UggDatas(world=$world)"
@@ -17,8 +15,6 @@ data class UggDatas(
 data class UggARAMDatas(
     @Json(name = "12")
     val world: WorldARAMDatas?
-
-
 ) {
     override fun toString(): String {
         return "UggARAMDatas(world=$world)"
