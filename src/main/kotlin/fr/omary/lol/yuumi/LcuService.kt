@@ -48,9 +48,13 @@ fun startYuumi() {
 }
 
 fun stopYuumi() {
-    sendLcuNotif("Disconnected", "Disconnected to Yuumi, See you later", 1)
-    socket?.close()
-    api.stop()
+    try {
+        sendLcuNotif("Disconnected", "Disconnected to Yuumi, See you later", 1)
+        socket?.close()
+        api.stop()
+    } catch ( e: Exception){
+        // Nothing
+    }
 }
 
 fun notifConnected() {
