@@ -1,5 +1,7 @@
 package fr.omary.lol.yuumi
 
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.awt.*
 import java.awt.event.ActionListener
 import java.awt.event.ItemEvent
@@ -126,12 +128,14 @@ private fun showYuumiDialog(message: String, title: String) {
 }
 
 private fun showHistory() {
-    showYuumiDialog("History: \n${messages.joinToString("\n")}",
+    showYuumiDialog(
+        "History: \n${messages.joinToString("\n")}",
         "Yuumi History"
     )
 }
 
-fun createImage(path: String, description: String?): ImageIcon = ImageIcon(Thread.currentThread().contextClassLoader.getResource(path), description)
+fun createImage(path: String, description: String?): ImageIcon =
+    ImageIcon(Thread.currentThread().contextClassLoader.getResource(path), description)
 
 fun sendSystemNotification(message: String, level: String) {
     messages.add(Pair(LocalDateTime.now(), message))
@@ -146,7 +150,7 @@ fun waitingConnect() {
     trayIcon.toolTip = waitingMessage
 }
 
-fun connected(){
+fun connected() {
     stopLoading()
 }
 
@@ -165,18 +169,22 @@ fun refreshChampionList(championsNames: List<Pair<Int, String>>) {
     champMenuHtoM.removeAll()
     champMenuNtoS.removeAll()
     champMenuTtoZ.removeAll()
-    championsNames.forEach { when (it.second.first()){
-        in 'A'..'G' -> champMenuAtoG.add(generateItemMenu(it))
-        in 'H'..'M' -> champMenuHtoM.add(generateItemMenu(it))
-        in 'N'..'S' -> champMenuNtoS.add(generateItemMenu(it))
-        in 'T'..'Z' -> champMenuTtoZ.add(generateItemMenu(it))
-    } }
+    championsNames.forEach {
+        when (it.second.first()) {
+            in 'A'..'G' -> champMenuAtoG.add(generateItemMenu(it))
+            in 'H'..'M' -> champMenuHtoM.add(generateItemMenu(it))
+            in 'N'..'S' -> champMenuNtoS.add(generateItemMenu(it))
+            in 'T'..'Z' -> champMenuTtoZ.add(generateItemMenu(it))
+        }
+    }
 }
 
 fun generateItemMenu(champPair: Pair<Int, String>): MenuItem {
     val menuItem = MenuItem(champPair.second)
     val listener = ActionListener {
-        validateChampion(champPair.first)
+        GlobalScope.launch {
+            validateChampion(champPair.first)
+        }
     }
     if (champPair.first == 0) {
         menuItem.isEnabled = false

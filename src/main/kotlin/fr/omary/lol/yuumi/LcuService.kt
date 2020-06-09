@@ -5,6 +5,7 @@ import com.stirante.lolclient.ClientApi
 import com.stirante.lolclient.ClientConnectionListener
 import com.stirante.lolclient.ClientWebSocket
 import generated.*
+import kotlinx.coroutines.*
 
 private val api = ClientApi()
 private var socket: ClientWebSocket? = null
@@ -25,19 +26,27 @@ fun startYuumi() {
                 openSocket()
                 if (socket == null || !socket!!.isOpen) {
                     return
+                } else {
+                    println("Socket connected")
                 }
-                initStaticVariables()
+                runBlocking {
+                    initStaticVariables()
+                }
                 notifConnected()
 
                 socket?.setSocketListener(object : ClientWebSocket.SocketListener {
                     override fun onEvent(event: ClientWebSocket.Event) {
-                        handleValidateChampion(event)
-                        handleChooseChampion(event)
+                        GlobalScope.launch {
+                            println(event)
+                            handleValidateChampion(event)
+                            handleChooseChampion(event)
+                        }
                     }
 
                     override fun onClose(code: Int, reason: String) {
                         println("Socket closed, reason: $reason")
-                        if (api.isConnected){
+                        if (api.isConnected) {
+                            socket = null
                             onClientConnected()
                         }
                     }
@@ -61,7 +70,9 @@ fun stopYuumi() {
 }
 
 fun notifConnected() {
-    sendLcuNotif("Connected", "Connected to Yuumi, Enjoy", 11)
+    GlobalScope.launch {
+        sendLcuNotif("Connected", "Connected to Yuumi, Enjoy", 11)
+    }
 }
 
 fun sendLcuNotif(title: String, detail: String, idImage: Int) {
@@ -77,46 +88,68 @@ fun sendLcuNotif(title: String, detail: String, idImage: Int) {
     api.executePost("/player-notifications/v1/notifications", notif)
 }
 
-fun getCurrentSummoner(): LolSummonerSummoner? = api.executeGet("/lol-summoner/v1/current-summoner", LolSummonerSummoner::class.java)
-fun sendSummonerSpells(spells: JsonObject): Boolean = api.executePatch(
-    "/lol-lobby-team-builder/champ-select/v1/session/my-selection",
-    spells
-) || api.executePatch(
-    "/lol-champ-select/v1/session/my-selection",
-    spells
-)
-fun getMaps(): Array<LolMapsMaps> = api.executeGet("/lol-maps/v2/maps", Array<LolMapsMaps>::class.java)
+fun getCurrentSummoner(): Deferred<LolSummonerSummoner> = GlobalScope.async {
+    api.executeGet("/lol-summoner/v1/current-summoner", LolSummonerSummoner::class.java)
+}
 
-fun getItemsSets(summonerId: Long): LolItemSetsItemSets = api.executeGet(
-    "/lol-item-sets/v1/item-sets/${summonerId}/sets",
-    LolItemSetsItemSets::class.java
-)
+fun sendSummonerSpells(spells: JsonObject): Deferred<Boolean> = GlobalScope.async {
+    api.executePatch(
+        "/lol-lobby-team-builder/champ-select/v1/session/my-selection",
+        spells
+    ) || api.executePatch(
+        "/lol-champ-select/v1/session/my-selection",
+        spells
+    )
+}
 
-fun getChampion(summonerId: Long, champId: Int): LolChampionsCollectionsChampion? = api.executeGet(
-    "/lol-champions/v1/inventories/${summonerId}/champions/${champId}",
-    LolChampionsCollectionsChampion::class.java
-)
+fun getMaps(): Deferred<Array<LolMapsMaps>> =
+    GlobalScope.async { api.executeGet("/lol-maps/v2/maps", Array<LolMapsMaps>::class.java) }
+
+fun getItemsSets(summonerId: Long): Deferred<LolItemSetsItemSets> = GlobalScope.async {
+    api.executeGet(
+        "/lol-item-sets/v1/item-sets/${summonerId}/sets",
+        LolItemSetsItemSets::class.java
+    )
+}
+
+fun getChampion(summonerId: Long, champId: Int): Deferred<LolChampionsCollectionsChampion?> = GlobalScope.async {
+    api.executeGet(
+        "/lol-champions/v1/inventories/${summonerId}/champions/${champId}",
+        LolChampionsCollectionsChampion::class.java
+    )
+}
 
 
-fun sendItems(summonerId: Long?, items: LolItemSetsItemSets): Boolean = api.executePut(
-    "/lol-item-sets/v1/item-sets/$summonerId/sets", items
-)
+fun sendItems(summonerId: Long?, items: LolItemSetsItemSets): Deferred<Boolean> = GlobalScope.async {
+    api.executePut(
+        "/lol-item-sets/v1/item-sets/$summonerId/sets", items
+    )
+}
 
-fun getCurrentGameMode() = api.executeGet("/lol-lobby/v2/lobby", LolLobbyLobbyDto::class.java)?.gameConfig?.gameMode
+fun getCurrentGameMode() =
+    GlobalScope.async { api.executeGet("/lol-lobby/v2/lobby", LolLobbyLobbyDto::class.java)?.gameConfig?.gameMode }
 
-fun getTeam(): MutableList<LolLobbyTeamBuilderChampSelectPlayerSelection>? = api.executeGet(
-    "/lol-lobby-team-builder/champ-select/v1/session",
-    LolLobbyTeamBuilderChampSelectSession::class.java
-)?.myTeam
+fun getTeam(): Deferred<MutableList<LolLobbyTeamBuilderChampSelectPlayerSelection>?> = GlobalScope.async {
+    api.executeGet(
+        "/lol-lobby-team-builder/champ-select/v1/session",
+        LolLobbyTeamBuilderChampSelectSession::class.java
+    )?.myTeam
+}
 
-fun deletePages(page: LolPerksPerkPageResource) = api.executeDelete("/lol-perks/v1/pages/${page.id}")
-fun getPages(): Array<LolPerksPerkPageResource>? = api.executeGet("/lol-perks/v1/pages", Array<LolPerksPerkPageResource>::class.java)
-fun sendPage(perk: LolPerksPerkPageResource): Boolean = api.executePost("/lol-perks/v1/pages", perk)
+suspend fun deletePages(page: LolPerksPerkPageResource) =
+    GlobalScope.async { api.executeDelete("/lol-perks/v1/pages/${page.id}") }.await()
+
+fun getPages(): Deferred<Array<LolPerksPerkPageResource>?> = GlobalScope.async {
+    api.executeGet("/lol-perks/v1/pages", Array<LolPerksPerkPageResource>::class.java)
+}
+
+fun sendPage(perk: LolPerksPerkPageResource): Deferred<Boolean> =
+    GlobalScope.async { api.executePost("/lol-perks/v1/pages", perk) }
 
 private fun openSocket() {
     var maxTry = 20
     do {
-        println("Socket not connected will (re)try...")
+        println("Socket not connected will (re)try... $maxTry remaining")
         Thread.sleep(1000)
         try {
             if (socket != null) {
@@ -127,18 +160,17 @@ private fun openSocket() {
             // nothing
         }
         maxTry--
-    } while (socket == null || !socket?.isOpen!! || maxTry < 0)
-    println("Socket connected")
+    } while (maxTry > 0 && (socket == null || !socket?.isOpen!!))
 }
 
 
-private fun handleValidateChampion(event: ClientWebSocket.Event) {
+private suspend fun handleValidateChampion(event: ClientWebSocket.Event) {
     if (event.eventType != "Delete" && event.uri == "/lol-champ-select/v1/current-champion") {
         validateChampion(event.data as Int)
     }
 }
 
-private fun handleChooseChampion(event: ClientWebSocket.Event) {
+private suspend fun handleChooseChampion(event: ClientWebSocket.Event) {
     if (event.eventType != "Delete" && event.uri.startsWith("/lol-champ-select/v1/grid-champions/")) {
         if (getChampion((event.data as LolChampSelectChampGridChampion).id) == null) {
             processChampion((event.data as LolChampSelectChampGridChampion).id)

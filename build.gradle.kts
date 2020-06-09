@@ -60,6 +60,7 @@ tasks.compileKotlin {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.7")
     implementation("com.github.stirante:lol-client-java-api:1.2.2")
     implementation("org.apache.commons:commons-lang3:3.10")
     implementation("org.apache.httpcomponents:httpclient:4.5.12")

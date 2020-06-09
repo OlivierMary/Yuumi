@@ -4,7 +4,7 @@ import com.beust.klaxon.JsonObject
 import fr.omary.lol.yuumi.models.ItemDatas2
 import fr.omary.lol.yuumi.models.PositionDatas
 import generated.*
-import java.lang.Thread.sleep
+import kotlinx.coroutines.delay
 
 private val perksByIdChamp: MutableMap<Int, List<Pair<Int, LolPerksPerkPageResource>>> = mutableMapOf()
 private val championsByIdChamp: MutableMap<Int, LolChampionsCollectionsChampion> = mutableMapOf()
@@ -18,27 +18,27 @@ private var gameMode: String? = null
 private var assignedPosition: String? = null
 private const val TOKEN = "GENERATED"
 
-fun initStaticVariables() {
+suspend fun initStaticVariables() {
     summoner = waitToGetSummoner()!!
     val maps = getMaps()
-    val uniqueMapsId = maps.map(LolMapsMaps::id).distinct()
-    uniqueMaps = uniqueMapsId.map { id -> maps.first { m -> m.id == id } }.toMutableList()
-    lolItemSetsItemSets = getItemsSets(summoner.summonerId)
+    val uniqueMapsId = maps.await().map(LolMapsMaps::id).distinct()
+    uniqueMaps = uniqueMapsId.map { id -> maps.await().first { m -> m.id == id } }.toMutableList()
+    lolItemSetsItemSets = getItemsSets(summoner.summonerId).await()
 }
 
 fun getChampion(champId: Int) = championsByIdChamp[champId]
 
-private fun waitToGetSummoner(): LolSummonerSummoner? {
+private suspend fun waitToGetSummoner(): LolSummonerSummoner? {
     var tempSummoner: LolSummonerSummoner?
     do {
-        tempSummoner = getCurrentSummoner()
-        sleep(1000)
+        tempSummoner = getCurrentSummoner().await()
+        delay(1000)
     } while (tempSummoner == null)
     return tempSummoner
 }
 
-private fun refreshAssignerPosition() {
-    val me = getTeam()?.first { x -> x.summonerId == summoner.summonerId }
+private suspend fun refreshAssignerPosition() {
+    val me = getTeam().await()?.first { x -> x.summonerId == summoner.summonerId }
     assignedPosition = me?.assignedPosition
     if (assignedPosition == null || assignedPosition == "") {
         assignedPosition = if (gameMode == "ARAM") {
@@ -49,9 +49,9 @@ private fun refreshAssignerPosition() {
     }
 }
 
-fun validateChampion(champId: Int) {
+suspend fun validateChampion(champId: Int) {
     startLoading("Send [${championsByIdChamp[champId]?.name}]")
-    gameMode = getCurrentGameMode()
+    gameMode = getCurrentGameMode().await()
     refreshAssignerPosition()
     checkProcessedOrWait(champId)
     setPerks(champId)
@@ -64,7 +64,7 @@ fun validateChampion(champId: Int) {
     stopLoading()
 }
 
-private fun checkProcessedOrWait(champId: Int) {
+private suspend fun checkProcessedOrWait(champId: Int) {
     // In case of select too fast if champ not already processed
     if (!championsByIdChamp.containsKey(champId) || championsByIdChamp[champId] == null) {
         processChampion(champId)
@@ -74,12 +74,12 @@ private fun checkProcessedOrWait(champId: Int) {
     var timeout = 0
     while ((!perksByIdChamp.containsKey(champId) || !itemsSetsByIdChamp.containsKey(champId)) && timeout < 20) {
         println("Waiting process...")
-        sleep(500)
+        delay(500)
         timeout++
     }
 }
 
-private fun setPerks(champId: Int) {
+private suspend fun setPerks(champId: Int) {
     if (perksByIdChamp.containsKey(champId) && perksByIdChamp[champId] != null) {
         resetGeneratedExistingPerks()
         setCurrentPerk(champId)
@@ -90,8 +90,8 @@ private fun setPerks(champId: Int) {
 }
 
 
-private fun resetGeneratedExistingPerks() =
-    getPages()?.filter { p -> p.name.startsWith(TOKEN) }?.forEach { deletePages(it) }
+private suspend fun resetGeneratedExistingPerks() =
+    getPages().await()?.filter { p -> p.name.startsWith(TOKEN) }?.forEach { deletePages(it) }
 
 private fun setCurrentPerk(champId: Int) {
     if (gameMode == "ARAM") {
@@ -114,9 +114,9 @@ private fun setCurrentPerk(champId: Int) {
     }
 }
 
-private fun commitPerks(champId: Int) {
+private suspend fun commitPerks(champId: Int) {
     perksByIdChamp[champId]!!.sortedBy { it.second.current != null && it.second.current }
-        .map { it to sendPage(it.second) }
+        .map { it to sendPage(it.second).await() }
         .filter { !it.second && it.first.second.current != null && it.first.second.current }
         .forEach {
             run {
@@ -125,15 +125,15 @@ private fun commitPerks(champId: Int) {
                     "WARNING"
                 )
                 resetGeneratedExistingPerks()
-                sendPage(it.first.second)
+                sendPage(it.first.second).await()
             }
         }
 }
 
-private fun setItemsSets(champId: Int) {
+private suspend fun setItemsSets(champId: Int) {
     if (itemsSetsByIdChamp.containsKey(champId) && itemsSetsByIdChamp[champId] != null) {
         resetAndPopulateItemsSets(champId)
-        sendItems(summoner.summonerId, lolItemSetsItemSets)
+        sendItems(summoner.summonerId, lolItemSetsItemSets).await()
     }
 }
 
@@ -147,9 +147,9 @@ private fun resetAndPopulateItemsSets(champId: Int) {
     lolItemSetsItemSets.itemSets?.addAll(items)
 }
 
-private fun setSummonerSpells(champId: Int) {
+private suspend fun setSummonerSpells(champId: Int) {
     if (summonerSpellsByChamp.containsKey(champId) && summonerSpellsByChamp[champId] != null) {
-        sendSummonerSpells(prepareSummonerSpells(champId))
+        sendSummonerSpells(prepareSummonerSpells(champId)).await()
     }
 }
 
@@ -165,15 +165,15 @@ private fun prepareSummonerSpells(champId: Int) = JsonObject().apply {
     }
 }
 
-fun processChampion(champId: Int) {
-    startLoading("Process [$champId]...")
+suspend fun processChampion(champId: Int) {
     if (champId < 1) {
         return
     }
+    startLoading("Process [$champId]...")
 
     var champion = championsByIdChamp[champId]
     if (champion == null) {
-        champion = getChampion(summoner.summonerId, champId)
+        champion = getChampion(summoner.summonerId, champId).await()
     }
     if (champion == null) {
         return // maybe client closed before process
@@ -194,16 +194,16 @@ fun processChampion(champId: Int) {
     for (uniqueMap in uniqueMaps) {
         when (uniqueMap.mapStringId) {
             "SR" -> {
-                for (role in rankedDatas?.world?.platPlus?.allRoles()!!) {
+                for (role in rankedDatas.await()?.world?.platPlus?.allRoles()!!) {
                     newItemsList.add(generateItemsSet(champion, uniqueMap, role))
                     newPerks.add(generatePerk(role, champion, uniqueMap))
                     newSummonerSpells.add(generateSummoner(role))
                 }
             }
             "HA" -> {
-                newItemsList.add(generateItemsSet(champion, uniqueMap, aramDatas?.world?.aram?.aram()))
-                newPerks.add(generatePerk(aramDatas?.world?.aram?.aram(), champion, uniqueMap))
-                newSummonerSpells.add(generateSummoner(aramDatas?.world?.aram?.aram()))
+                newItemsList.add(generateItemsSet(champion, uniqueMap, aramDatas.await()?.world?.aram?.aram()))
+                newPerks.add(generatePerk(aramDatas.await()?.world?.aram?.aram(), champion, uniqueMap))
+                newSummonerSpells.add(generateSummoner(aramDatas.await()?.world?.aram?.aram()))
             }
         }
     }
