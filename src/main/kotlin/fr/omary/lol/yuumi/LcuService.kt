@@ -37,6 +37,9 @@ fun startYuumi() {
 
                     override fun onClose(code: Int, reason: String) {
                         println("Socket closed, reason: $reason")
+                        if (api.isConnected){
+                            onClientConnected()
+                        }
                     }
                 })
             } catch (e: Exception) {
@@ -74,7 +77,7 @@ fun sendLcuNotif(title: String, detail: String, idImage: Int) {
     api.executePost("/player-notifications/v1/notifications", notif)
 }
 
-fun getCurrentSummoner(): LolSummonerSummoner = api.executeGet("/lol-summoner/v1/current-summoner", LolSummonerSummoner::class.java)
+fun getCurrentSummoner(): LolSummonerSummoner? = api.executeGet("/lol-summoner/v1/current-summoner", LolSummonerSummoner::class.java)
 fun sendSummonerSpells(spells: JsonObject): Boolean = api.executePatch(
     "/lol-lobby-team-builder/champ-select/v1/session/my-selection",
     spells
