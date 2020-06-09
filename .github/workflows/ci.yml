@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SHA8: ${github.sha::8}
     steps:
     - name: Checkout
       id: checkout
@@ -43,7 +45,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: Last build ${{ github.ref }} ${{ github.sha }}
+        release_name: Last build ${{ github.ref }} $SHA8
         draft: true
         prerelease: true
         
