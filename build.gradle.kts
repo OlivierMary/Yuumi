@@ -28,7 +28,9 @@ tasks {
         icon = "$projectDir/assets/favicon.ico"
         productName = "Yuumi"
         jar = "${projectDir}/build/libs/shadow-yuumi-${rootProject.version}-all.jar"
-        bundledJrePath = System.getenv("JAVA_HOME")
+        bundledJrePath = "%JAVA_HOME%"
+        bundledJreAsFallback = true
+
         dependsOn(shadowJar)
     }
     build {
@@ -43,3 +45,6 @@ dependencies {
     implementation("org.apache.httpcomponents:httpclient:4.5.12")
     implementation("com.beust:klaxon:5.2")
 }
+
+val compileKotlin: org.jetbrains.kotlin.gradle.tasks.KotlinCompile by tasks
+compileKotlin.kotlinOptions.jvmTarget = "1.8"
