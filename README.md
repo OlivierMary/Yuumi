@@ -30,6 +30,7 @@ Set summoner spell for calculated position
  - Clean Generated notification in Lcu
  - Persist Notification settings
  - Toggle Lcu Notifications ?
+ - Change App name for windows Task Manager it's the jdk name
 
 ## Refactor
  - DTO for yuumi tools and not from ugg + parse ugg -> new dto
