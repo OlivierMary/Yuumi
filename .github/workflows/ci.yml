@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SHA8: ${{ github.sha }}
+      VERSION: ${{ github.ref#refs/*/ }}
     steps:
     - name: Echo env
       id: env
