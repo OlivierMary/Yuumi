@@ -14,7 +14,7 @@ jobs:
     steps:
     - name: Extract branch name
       shell: bash
-      run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_BRANCH#refs/heads/} | sed 's/\//_/g')"
+      run: echo "##[set-output name=version;]$(echo ${GITHUB_BRANCH##*/})"
       id: extract_branch
       env:
         GITHUB_BRANCH: ${{ github.ref }}
@@ -34,6 +34,8 @@ jobs:
     - name: Build
       id: build
       run: ./gradlew build
+      env:
+        BRANCH_NAME: ${{ steps.extract_branch.outputs.version }}
       
     - name: Zip Package
       id: zip-package
@@ -55,9 +57,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.extract_branch.outputs }}
-        release_name: Last build ${{ steps.extract_branch.outputs }}
-        body: Release Tag[${{ steps.extract_branch.outputs }}] Sha[${{ github.sha }}]
+        tag_name: ${{ steps.extract_branch.outputs.version }}
+        release_name: Last build ${{ steps.extract_branch.outputs.version }}
+        body: Release Tag[${{ steps.extract_branch.outputs.version }}] Sha[${{ github.sha }}]
         draft: false
         prerelease: true
 
@@ -69,7 +71,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./Yuumi.zip
-        asset_name: Yuumi-${{ steps.extract_branch.outputs }}-.zip
+        asset_name: Yuumi-${{ steps.extract_branch.outputs.version }}-.zip
         asset_content_type: application/zip
 
     - name: Upload Release Jar
@@ -80,5 +82,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./Yuumi-jars.zip
-        asset_name: Yuumi-${{ steps.extract_branch.outputs }}-jars-.zip
+        asset_name: Yuumi-${{ steps.extract_branch.outputs.version }}-jars-.zip
         asset_content_type: application/zip
