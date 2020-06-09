@@ -86,9 +86,6 @@ private fun createAndShowGUI() {
         println("TrayIcon could not be added.")
         throw e
     }
-    trayIcon.addActionListener {
-        showAbout()
-    }
     aboutItem.addActionListener {
         showAbout()
     }

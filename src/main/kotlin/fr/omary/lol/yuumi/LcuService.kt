@@ -52,7 +52,7 @@ fun stopYuumi() {
         sendLcuNotif("Disconnected", "Disconnected to Yuumi, See you later", 1)
         socket?.close()
         api.stop()
-    } catch ( e: Exception){
+    } catch (e: Exception) {
         // Nothing
     }
 }
@@ -74,13 +74,15 @@ fun sendLcuNotif(title: String, detail: String, idImage: Int) {
     api.executePost("/player-notifications/v1/notifications", notif)
 }
 
-fun getCurrentSummoner() = api.executeGet("/lol-summoner/v1/current-summoner", LolSummonerSummoner::class.java)
+fun getCurrentSummoner(): LolSummonerSummoner = api.executeGet("/lol-summoner/v1/current-summoner", LolSummonerSummoner::class.java)
 fun sendSummonerSpells(spells: JsonObject): Boolean = api.executePatch(
     "/lol-lobby-team-builder/champ-select/v1/session/my-selection",
     spells
+) || api.executePatch(
+    "/lol-champ-select/v1/session/my-selection",
+    spells
 )
-
-fun getMaps() = api.executeGet("/lol-maps/v2/maps", Array<LolMapsMaps>::class.java)
+fun getMaps(): Array<LolMapsMaps> = api.executeGet("/lol-maps/v2/maps", Array<LolMapsMaps>::class.java)
 
 fun getItemsSets(summonerId: Long): LolItemSetsItemSets = api.executeGet(
     "/lol-item-sets/v1/item-sets/${summonerId}/sets",
@@ -105,8 +107,8 @@ fun getTeam(): MutableList<LolLobbyTeamBuilderChampSelectPlayerSelection>? = api
 )?.myTeam
 
 fun deletePages(page: LolPerksPerkPageResource) = api.executeDelete("/lol-perks/v1/pages/${page.id}")
-fun getPages() = api.executeGet("/lol-perks/v1/pages", Array<LolPerksPerkPageResource>::class.java)
-fun sendPage(perk: LolPerksPerkPageResource) = api.executePost("/lol-perks/v1/pages", perk)
+fun getPages(): Array<LolPerksPerkPageResource>? = api.executeGet("/lol-perks/v1/pages", Array<LolPerksPerkPageResource>::class.java)
+fun sendPage(perk: LolPerksPerkPageResource): Boolean = api.executePost("/lol-perks/v1/pages", perk)
 
 private fun openSocket() {
     var maxTry = 20
