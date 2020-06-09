@@ -50,7 +50,7 @@ jobs:
       with:
         tag_name: ${{ github.ref }}
         release_name: Last build ${{ github.ref }}
-        body: Last build branch[${{ github.ref }}] Sha[${{ github.sha[0:8] }}]
+        body: Last build branch[${{ github.ref }}] Sha[${{ github.sha }}]
         draft: true
         prerelease: true
         
