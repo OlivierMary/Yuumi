@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      SHA8: ${github.sha::8}
+      SHA8: ${{github.sha::8}}
     steps:
     - name: Echo env
       id: env
@@ -49,7 +49,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: Last build ${{ github.ref }} ${env.SHA8}
+        release_name: Last build ${{ github.ref }} $SHA8
         draft: true
         prerelease: true
         
