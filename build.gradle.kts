@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "fr.omary.lol"
-version = "1.0-SNAPSHOT"
+version = System.getenv("REF")
 
 repositories {
     mavenCentral()
