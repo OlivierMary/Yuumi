@@ -12,6 +12,10 @@ jobs:
     env:
       SHA8: ${github.sha::8}
     steps:
+    - name: Echo env
+      id: env
+      run: env
+      
     - name: Checkout
       id: checkout
       uses: actions/checkout@v2
@@ -45,7 +49,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: Last build ${{ github.ref }} ${SHA8}
+        release_name: Last build ${{ github.ref }} ${env.SHA8}
         draft: true
         prerelease: true
         
