@@ -60,8 +60,8 @@ jobs:
         tag_name: ${{ steps.extract_branch.outputs.version }}
         release_name: Last build ${{ steps.extract_branch.outputs.version }}
         body: Release Tag[${{ steps.extract_branch.outputs.version }}] Sha[${{ github.sha }}]
-        draft: false
-        prerelease: true
+        draft: true
+        prerelease: false
 
     - name: Upload Release Zip
       id: upload-release-zip
