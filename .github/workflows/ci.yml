@@ -14,6 +14,10 @@ jobs:
       id: checkout
       uses: actions/checkout@v2
 
+    - name: Clean if use same agent
+      id: clean
+      run: ./gradlew clean
+
     - name: Build
       id: build
       run: ./gradlew build
