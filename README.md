@@ -42,4 +42,6 @@ Set summoner spell for calculated position
 
 ## To Fix
  - Find a way to have only one `validateChampion` if summoner spell before != need => another handler endpoint?
+ - If summoner change summoners spell after choice that re-start sending => can solve ^^^^^^
+ - Find a way to cancel / bypass all Process Champ if select champ while big synchronization (Startup)
 
