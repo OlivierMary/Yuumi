@@ -6,6 +6,7 @@ plugins {
 
 group = "fr.omary.lol"
 version = System.getenv("BRANCH_NAME")
+val sha: String = System.getenv("SHA")
 
 repositories {
     mavenCentral()
@@ -19,7 +20,9 @@ tasks {
         mergeServiceFiles()
         manifest {
             attributes(mapOf("Main-Class" to "fr.omary.lol.yuumi.ApplicationKt",
-            "Implementation-Version" to "${rootProject.version}"))
+            "Implementation-Version" to "${rootProject.version}",
+            "Implementation-Commit" to sha
+            ))
         }
     }
     createExe {
