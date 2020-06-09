@@ -14,11 +14,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Delete drafts
-      uses: hugo19941994/delete-draft-releases@v0.1.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Checkout
       uses: actions/checkout@v2
 
@@ -27,8 +22,13 @@ jobs:
       run: ./gradlew build
       
     - name: Zip Package
-      run: zip --junk-paths -r yuumi ./build/launch4j
+      run: cd ./build/launch4j ; zip --junk-paths -r ../../Yuumi.zip *
       
+    - name: Delete drafts
+      uses: hugo19941994/delete-draft-releases@v0.1.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -38,7 +38,7 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }} ${{ github.sha }}
         draft: true
-        prerelease: false
+        prerelease: true
         
     - name: Upload Release Asset
       id: upload-release-asset 
@@ -47,7 +47,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} 
-        asset_path: ./yuumi.zip
-        asset_name: yuumi.zip
+        asset_path: ./Yuumi.zip
+        asset_name: Yuumi.zip
         asset_content_type: application/zip
-        prerelease: false
+        prerelease: true
