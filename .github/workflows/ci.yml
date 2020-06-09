@@ -1,9 +1,5 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on:
   push:
     branches: [ master ]
@@ -15,16 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
+      id: checkout
       uses: actions/checkout@v2
 
-    # Runs a single command using the runners shell
     - name: Build
+      id: build
       run: ./gradlew build
       
     - name: Zip Package
-      run: cd ./build/launch4j ; zip --junk-paths -r ../../Yuumi.zip *
+      id: zip-package
+      run: cd ./build/launch4j ; zip -r ../../Yuumi.zip *
       
     - name: Delete drafts
+      id: delete-draft
       uses: hugo19941994/delete-draft-releases@v0.1.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,8 +39,8 @@ jobs:
         draft: true
         prerelease: true
         
-    - name: Upload Release Asset
-      id: upload-release-asset 
+    - name: Upload Release Zip
+      id: upload-release-zip 
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -49,5 +48,17 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }} 
         asset_path: ./Yuumi.zip
         asset_name: Yuumi.zip
+        asset_content_type: application/zip
+        prerelease: true
+        
+    - name: Upload Release Jar
+      id: upload-release-jar
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} 
+        asset_path: build/libs/shadow*all.jar
+        asset_name: yuumi.jar
         asset_content_type: application/zip
         prerelease: true
