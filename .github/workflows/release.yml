@@ -58,7 +58,6 @@ jobs:
         asset_path: ./Yuumi.zip
         asset_name: Yuumi.zip
         asset_content_type: application/zip
-        prerelease: false
         
     - name: Upload Release Jar
       id: upload-release-jar
@@ -70,4 +69,3 @@ jobs:
         asset_path: ./Yuumi-jars.zip
         asset_name: Yuumi-jars.zip
         asset_content_type: application/zip
-        prerelease: false
