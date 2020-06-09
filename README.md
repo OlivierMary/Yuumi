@@ -28,7 +28,7 @@ Set summoner spell for calculated position
 # TODO
 ## Improvement
  - Get Ugg LoL version and Ugg version dynamically
- - Make a persistent cache with 1-2d retention + refresh cache button
+ - ~~Make a persistent cache~~ with 1-2d retention + refresh cache button
  - Champ menu with position to set ? => Can be use full if not enough pages and selected page is not good (fill,pick,switch)
  - Clean Generated notification in Lcu
  - Persist Notification settings
@@ -41,7 +41,7 @@ Set summoner spell for calculated position
  - Not dependent of com.github.stirante:lol-client-java-api
 
 ## To Fix
- - Find a way to have only one `validateChampion` if summoner spell before != need => another handler endpoint?
- - If summoner change summoners spell after choice that re-start sending => can solve ^^^^^^
+ - **Find a way to have only one `validateChampion` if summoner spell before != need => another handler endpoint?**
+ - **If summoner change summoners spell after choice that re-start sending => can solve ^^^^^^**
  - Find a way to cancel / bypass all Process Champ if select champ while big synchronization (Startup)
 

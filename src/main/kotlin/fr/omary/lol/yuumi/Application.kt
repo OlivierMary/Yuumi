@@ -5,6 +5,8 @@ import kotlinx.coroutines.launch
 import java.awt.*
 import java.awt.event.ActionListener
 import java.awt.event.ItemEvent
+import java.io.File
+import java.lang.System.getenv
 import java.time.LocalDateTime
 import javax.swing.*
 import kotlin.system.exitProcess
@@ -25,6 +27,10 @@ private var champMenuNtoS = Menu("[N-S]")
 private var champMenuTtoZ = Menu("[T-Z]")
 private const val defaultToolTip = "Yuumi"
 private const val waitingMessage = "Yuumi : Waiting LoL client to connect"
+private val tmpDir = getenv("TMP")
+private val yuumiTempDir = "${tmpDir}/yuumi"
+val rankedDirectory = File("$yuumiTempDir/ranked")
+val aramDirectory = File("$yuumiTempDir/aram")
 
 
 fun main() {
@@ -39,9 +45,17 @@ fun main() {
     } catch (ex: ClassNotFoundException) {
         ex.printStackTrace()
     }
+
+    createTempsDirs()
+
     UIManager.put("swing.boldMetal", false)
     SwingUtilities.invokeLater { createAndShowGUI() }
     startYuumi()
+}
+
+private fun createTempsDirs() {
+    rankedDirectory.mkdirs()
+    aramDirectory.mkdirs()
 }
 
 private fun createAndShowGUI() {
