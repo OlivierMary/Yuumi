@@ -23,6 +23,17 @@ jobs:
     - uses: actions/checkout@v2
 
     # Runs a single command using the runners shell
-    - name: Run a one-line script
+    - name: Build
       run: ./gradlew build
 
+    # Runs a single command using the runners shell
+    - name: TarGz
+      run:  tar -zcvf Yuumi.tar.gz ./build/launch4j/*
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        # Artifact name
+        name: Yuumi
+        # A file, directory or wildcard pattern that describes what to upload
+        path: Yuumi.tar.gz
