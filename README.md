@@ -1,4 +1,5 @@
 ![CI](https://github.com/OlivierMary/Yuumi/workflows/CI/badge.svg)
+![RELEASE](https://github.com/OlivierMary/Yuumi/workflows/RELEASE/badge.svg)
 
 # Yuumi
 League of legends Automatic Runes/Items/Spell setter
