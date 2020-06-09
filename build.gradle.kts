@@ -19,7 +19,7 @@ tasks {
         mergeServiceFiles()
         manifest {
             attributes(mapOf("Main-Class" to "fr.omary.lol.yuumi.ApplicationKt",
-            "Implementation-Version" to version))
+            "Implementation-Version" to "${rootProject.version}"))
         }
     }
     createExe {
