@@ -21,7 +21,11 @@ jobs:
     - name: Zip Package
       id: zip-package
       run: cd ./build/launch4j ; zip -r ../../Yuumi.zip *
-      
+
+    - name: Zip Jars
+      id: zip-jars
+      run: cd ./build/libs ; zip -r ../../Yuumi-jars.zip *
+
     - name: Delete drafts
       id: delete-draft
       uses: hugo19941994/delete-draft-releases@v0.1.0
@@ -58,7 +62,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} 
-        asset_path: ./build/libs/shadow*all.jar
-        asset_name: yuumi.jar
+        asset_path: ./Yuumi-jars.zip
+        asset_name: Yuumi-jars.zip
         asset_content_type: application/zip
         prerelease: true
