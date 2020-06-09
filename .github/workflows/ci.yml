@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      SHA8: ${{github.sha::8}}
+      SHA8: ${{github.sha}::8}
     steps:
     - name: Echo env
       id: env
@@ -63,7 +63,6 @@ jobs:
         asset_path: ./Yuumi.zip
         asset_name: Yuumi.zip
         asset_content_type: application/zip
-        prerelease: true
         
     - name: Upload Release Jar
       id: upload-release-jar
@@ -75,4 +74,3 @@ jobs:
         asset_path: ./Yuumi-jars.zip
         asset_name: Yuumi-jars.zip
         asset_content_type: application/zip
-        prerelease: true
