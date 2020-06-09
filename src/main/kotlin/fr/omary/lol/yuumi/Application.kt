@@ -87,7 +87,17 @@ private fun createAndShowGUI() {
         throw e
     }
     aboutItem.addActionListener {
-        showAbout()
+        showYuumiDialog(
+            """
+                        Yuumi's informations:
+                        Version : [$VERSION]
+                        Commit : [$GIT_SHA]
+                        Date Commit : [$GIT_DATE]
+                        Date Build : [$BUILD_DATE]
+                        Dirty : [$DIRTY]
+                    """.trimIndent(),
+            "About Yuumi"
+        )
     }
     history.addActionListener {
         showHistory()
@@ -105,27 +115,19 @@ private fun createAndShowGUI() {
 }
 
 
-private fun showAbout() {
+private fun showYuumiDialog(message: String, title: String) {
     JOptionPane.showMessageDialog(
         null,
-        """
-            Yuumi's informations:
-            Version : [$VERSION]
-            Commit : [$GIT_SHA]
-            Date Commit : [$GIT_DATE]
-            Date Build : [$BUILD_DATE]
-            Dirty : [$DIRTY]
-        """.trimIndent(),
-        "About Yuumi",
+        message,
+        title,
         0,
         connected
     )
 }
 
 private fun showHistory() {
-    JOptionPane.showMessageDialog(
-        null,
-        "History: \n${messages.joinToString("\n")}"
+    showYuumiDialog("History: \n${messages.joinToString("\n")}",
+        "Yuumi History"
     )
 }
 
