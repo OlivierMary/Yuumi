@@ -2,11 +2,20 @@ plugins {
     kotlin("jvm") version "1.3.72"
     id("com.github.johnrengelman.shadow") version "5.2.0"
     id("edu.sc.seis.launch4j") version "2.4.6"
+    id("com.peterabeles.gversion") version "1.7.0"
 }
 
 group = "fr.omary.lol"
-version = System.getenv("BRANCH_NAME")
-val sha: String = System.getenv("SHA")
+version = if (System.getenv("BRANCH_NAME") != null) {
+    System.getenv("BRANCH_NAME")
+} else {
+    "DEV"
+}
+val sha: String = if (System.getenv("SHA") != null) {
+    System.getenv("SHA")
+} else {
+    "DEV"
+}
 
 repositories {
     mavenCentral()
@@ -15,14 +24,17 @@ repositories {
 }
 
 tasks {
-    shadowJar{
+    shadowJar {
         archiveBaseName.set("shadow-yuumi")
         mergeServiceFiles()
         manifest {
-            attributes(mapOf("Main-Class" to "fr.omary.lol.yuumi.ApplicationKt",
-            "Implementation-Version" to "${rootProject.version}",
-            "Implementation-Commit" to sha
-            ))
+            attributes(
+                mapOf(
+                    "Main-Class" to "fr.omary.lol.yuumi.ApplicationKt",
+                    "Implementation-Version" to "${rootProject.version}",
+                    "Implementation-Commit" to sha
+                )
+            )
         }
     }
     createExe {
@@ -41,6 +53,11 @@ tasks {
     }
 }
 
+tasks.compileKotlin {
+    dependsOn.add(tasks.createVersionFile)
+    kotlinOptions.jvmTarget = "1.8"
+}
+
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("com.github.stirante:lol-client-java-api:1.2.2")
@@ -49,5 +66,13 @@ dependencies {
     implementation("com.beust:klaxon:5.2")
 }
 
-val compileKotlin: org.jetbrains.kotlin.gradle.tasks.KotlinCompile by tasks
-compileKotlin.kotlinOptions.jvmTarget = "1.8"
+gversion {
+    srcDir = "${project.rootDir}/src/main/kotlin/"
+    classPackage = "${rootProject.group}.${rootProject.project.name}"
+    className = "YuumiVersion"
+    dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+    timeZone = "UTC"
+    debug = false
+    language = "kotlin"
+    explicitType = false
+}

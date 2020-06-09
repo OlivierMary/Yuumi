@@ -14,7 +14,7 @@ private var sendNotifications: Boolean = true
 private val connected = createImage("images/Yuumi.png", "tray icon")
 private val waiting = createImage("images/waitingConnect.png", "tray icon")
 private val loading = createImage("images/loading.gif", "tray icon")
-private val trayIcon = TrayIcon(waiting)
+private val trayIcon = TrayIcon(waiting.image)
 private val messages: MutableList<Pair<LocalDateTime, String>> = mutableListOf()
 private var champMenu = Menu("Send Synchronized Champion")
 private var champMenuAtoG = Menu("[A-G]")
@@ -108,7 +108,17 @@ private fun createAndShowGUI() {
 private fun showAbout() {
     JOptionPane.showMessageDialog(
         null,
-        defaultToolTip
+        """
+            Yuumi's informations:
+            Version : [$VERSION]
+            Commit : [$GIT_SHA]
+            Date Commit : [$GIT_DATE]
+            Date Build : [$BUILD_DATE]
+            Dirty : [$DIRTY]
+        """.trimIndent(),
+        "About Yuumi",
+        0,
+        connected
     )
 }
 
@@ -119,7 +129,7 @@ private fun showHistory() {
     )
 }
 
-fun createImage(path: String, description: String?): Image = ImageIcon(Thread.currentThread().contextClassLoader.getResource(path), description).image
+fun createImage(path: String, description: String?): ImageIcon = ImageIcon(Thread.currentThread().contextClassLoader.getResource(path), description)
 
 fun sendSystemNotification(message: String, level: String) {
     messages.add(Pair(LocalDateTime.now(), message))
@@ -130,7 +140,7 @@ fun sendSystemNotification(message: String, level: String) {
 }
 
 fun waitingConnect() {
-    trayIcon.image = waiting
+    trayIcon.image = waiting.image
     trayIcon.toolTip = waitingMessage
 }
 
@@ -139,12 +149,12 @@ fun connected(){
 }
 
 fun startLoading(actionMessage: String = "Processing...") {
-    trayIcon.image = loading
+    trayIcon.image = loading.image
     trayIcon.toolTip = actionMessage
 }
 
 fun stopLoading() {
-    trayIcon.image = connected
+    trayIcon.image = connected.image
     trayIcon.toolTip = defaultToolTip
 }
 
