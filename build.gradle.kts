@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "fr.omary.lol"
-version = System.getenv("REF").split("/").last() // REF like /refs/for/master ...
+version = System.getenv("BRANCH_NAME")
 
 repositories {
     mavenCentral()

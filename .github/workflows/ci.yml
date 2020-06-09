@@ -11,8 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SHA8: ${{ github.sha }}
-      REF: ${{ github.ref }}
     steps:
+    - name: Extract branch name
+      shell: bash
+      run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_BRANCH#refs/heads/} | sed 's/\//_/g')"
+      id: extract_branch
+      env:
+        GITHUB_BRANCH: ${{ github.ref }}
+
     - name: Echo env
       id: env
       run: env
@@ -49,30 +55,30 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Last build ${{ github.ref }}
-        body: Last build branch[${{ github.ref }}] Sha[${{ github.sha }}]
-        draft: true
+        tag_name: ${{ steps.extract_branch.outputs }}
+        release_name: Last build ${{ steps.extract_branch.outputs }}
+        body: Release Tag[${{ steps.extract_branch.outputs }}] Sha[${{ github.sha }}]
+        draft: false
         prerelease: true
-        
+
     - name: Upload Release Zip
-      id: upload-release-zip 
+      id: upload-release-zip
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} 
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./Yuumi.zip
-        asset_name: Yuumi.zip
+        asset_name: Yuumi-${{ steps.extract_branch.outputs }}-.zip
         asset_content_type: application/zip
-        
+
     - name: Upload Release Jar
       id: upload-release-jar
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} 
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./Yuumi-jars.zip
-        asset_name: Yuumi-jars.zip
+        asset_name: Yuumi-${{ steps.extract_branch.outputs }}-jars-.zip
         asset_content_type: application/zip
