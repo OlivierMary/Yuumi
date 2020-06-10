@@ -45,7 +45,7 @@ data class PositionsARAMDatas(
 ){
     fun aram(): PositionDatas? =
         PositionDatas(
-            "ARAM",
+            "aram",
             aramAr?.get(0) as List<Any>?
         )
     override fun toString(): String {

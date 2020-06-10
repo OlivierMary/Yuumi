@@ -8,7 +8,7 @@ import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.LocalDateTime.*
 
-private var lastPick: Pair<Int,LocalDateTime> = -1 to now().minusDays(1)
+private var lastPick: Pair<Int, LocalDateTime> = -1 to now().minusDays(1)
 private val perksByIdChamp: MutableMap<Int, List<Pair<Int, LolPerksPerkPageResource>>> = mutableMapOf()
 private val championsByIdChamp: MutableMap<Int, LolChampionsCollectionsChampion> = mutableMapOf()
 private val itemsSetsByIdChamp: MutableMap<Int, List<Triple<String?, LolItemSetsItemSet, Int>>> = mutableMapOf()
@@ -18,8 +18,10 @@ private var uniqueMaps = mutableListOf<LolMapsMaps>()
 private lateinit var lolItemSetsItemSets: LolItemSetsItemSets
 private lateinit var summoner: LolSummonerSummoner
 private var gameMode: String? = null
-private var assignedPosition: String? = null
 private const val TOKEN = "GENERATED"
+private const val FILL_POSITION = "FILL"
+private const val ARAM_POSITION = "aram"
+private const val ARAM_GAME_MODE = "ARAM"
 
 suspend fun initStaticVariables() {
     summoner = waitToGetSummoner()!!
@@ -40,35 +42,39 @@ private suspend fun waitToGetSummoner(): LolSummonerSummoner? {
     return tempSummoner
 }
 
-private suspend fun refreshAssignerPosition() {
+private suspend fun refreshAssignerPosition() : String {
     val me = getTeam().await()?.first { x -> x.summonerId == summoner.summonerId }
-    assignedPosition = me?.assignedPosition
+    var assignedPosition = me?.assignedPosition
     if (assignedPosition == null || assignedPosition == "") {
-        assignedPosition = if (gameMode == "ARAM") {
-            "ARAM"
+        assignedPosition = if (gameMode == ARAM_GAME_MODE) {
+            ARAM_POSITION
         } else {
-            "FILL"
+            FILL_POSITION
         }
     }
+    return assignedPosition
 }
 
 suspend fun validateChampion(champId: Int) {
-    if (lastPick.first == champId && now().isBefore(lastPick.second.plusSeconds(30))){
+    if (lastPick.first == champId && now().isBefore(lastPick.second.plusSeconds(30))) {
         return
     }
     lastPick = champId to now()
     startLoading("Send [${championsByIdChamp[champId]?.name}]")
     gameMode = getCurrentGameMode().await()
-    refreshAssignerPosition()
+    sendChampionPostion(champId, refreshAssignerPosition())
+    stopLoading()
+}
+
+suspend fun sendChampionPostion(champId: Int, position: String) {
     checkProcessedOrWait(champId)
-    setPerks(champId)
-    setItemsSets(champId)
-    setSummonerSpells(champId)
+    setPerks(champId, position)
+    setItemsSets(champId, position)
+    setSummonerSpells(champId, position)
     sendSystemNotification(
-        "Champ set ${championsByIdChamp[champId]?.name} - $assignedPosition - $gameMode : Sent",
+        "Champ set ${championsByIdChamp[champId]?.name} - $position - $gameMode : Sent",
         "INFO"
     )
-    stopLoading()
 }
 
 private suspend fun checkProcessedOrWait(champId: Int) {
@@ -86,10 +92,10 @@ private suspend fun checkProcessedOrWait(champId: Int) {
     }
 }
 
-private suspend fun setPerks(champId: Int) {
+private suspend fun setPerks(champId: Int, position: String) {
     if (perksByIdChamp.containsKey(champId) && perksByIdChamp[champId] != null) {
         resetGeneratedExistingPerks()
-        setCurrentPerk(champId)
+        setCurrentPerk(champId, position)
         commitPerks(champId)
     } else {
         println("Perks : no datas")
@@ -100,19 +106,19 @@ private suspend fun setPerks(champId: Int) {
 private suspend fun resetGeneratedExistingPerks() =
     getPages().await()?.filter { p -> p.name.startsWith(TOKEN) }?.forEach { deletePages(it) }
 
-private fun setCurrentPerk(champId: Int) {
-    if (gameMode == "ARAM") {
+private fun setCurrentPerk(champId: Int, position: String) {
+    if (gameMode == ARAM_GAME_MODE) {
         perksByIdChamp[champId]!!.first { p ->
-            p.second.name.contains(gameMode!!) && p.second.name.contains(championsByIdChamp[champId]!!.name)
+            p.second.name.contains(ARAM_POSITION) && p.second.name.contains(championsByIdChamp[champId]!!.name)
         }.second.current = true
     } else {
-        if (assignedPosition == "FILL") {
-            perksByIdChamp[champId]!!.filterNot { it.second.name.contains("ARAM") }
+        if (position == FILL_POSITION) {
+            perksByIdChamp[champId]!!.filterNot { it.second.name.contains(ARAM_POSITION) }
                 .maxBy { it.first }?.second?.current = true
         } else {
             perksByIdChamp[champId]!!.forEach { p ->
                 run {
-                    p.second.current = assignedPosition?.let {
+                    p.second.current = position.let {
                         p.second.name.contains(it) && p.second.name.contains(championsByIdChamp[champId]!!.name)
                     }
                 }
@@ -137,39 +143,37 @@ private suspend fun commitPerks(champId: Int) {
         }
 }
 
-private suspend fun setItemsSets(champId: Int) {
+private suspend fun setItemsSets(champId: Int, position: String) {
     if (itemsSetsByIdChamp.containsKey(champId) && itemsSetsByIdChamp[champId] != null) {
-        resetAndPopulateItemsSets(champId)
+        resetAndPopulateItemsSets(champId, position)
         sendItems(summoner.summonerId, lolItemSetsItemSets).await()
     }
 }
 
-private fun resetAndPopulateItemsSets(champId: Int) {
+private fun resetAndPopulateItemsSets(champId: Int, position: String) {
     lolItemSetsItemSets.itemSets?.removeIf { it.title.startsWith(TOKEN) }
-    val items = if (assignedPosition == "FILL") {
+    val items = if (position == FILL_POSITION) {
         itemsSetsByIdChamp[champId]!!.sortedBy { it.third }.map { it.second }
     } else {
-        itemsSetsByIdChamp[champId]!!.sortedBy { it.first == assignedPosition }.map { it.second }
+        itemsSetsByIdChamp[champId]!!.sortedBy { it.first == position }.map { it.second }
     }
     lolItemSetsItemSets.itemSets?.addAll(items)
 }
 
-private suspend fun setSummonerSpells(champId: Int) {
+private suspend fun setSummonerSpells(champId: Int, position: String) {
     if (summonerSpellsByChamp.containsKey(champId) && summonerSpellsByChamp[champId] != null) {
-        sendSummonerSpells(prepareSummonerSpells(champId)).await()
+        sendSummonerSpells(prepareSummonerSpells(champId, position)).await()
     }
 }
 
-private fun prepareSummonerSpells(champId: Int) = JsonObject().apply {
-    if (assignedPosition != null && assignedPosition != "") {
-        val summonerSpells: List<Int>? = if (assignedPosition == "FILL") {
-            summonerSpellsByChamp[champId]?.filter { it.first != "ARAM" }?.maxBy { it.third }?.second
-        } else {
-            summonerSpellsByChamp[champId]?.first { it.first == assignedPosition }?.second
-        }
-        this["spell1Id"] = summonerSpells?.get(0)
-        this["spell2Id"] = summonerSpells?.get(1)
+private fun prepareSummonerSpells(champId: Int, position: String) = JsonObject().apply {
+    val summonerSpells: List<Int>? = if (position == FILL_POSITION) {
+        summonerSpellsByChamp[champId]?.filter { it.first != ARAM_POSITION }?.maxBy { it.third }?.second
+    } else {
+        summonerSpellsByChamp[champId]?.first { it.first == position }?.second
     }
+    this["spell1Id"] = summonerSpells?.get(0)
+    this["spell2Id"] = summonerSpells?.get(1)
 }
 
 suspend fun processChampion(champId: Int) {

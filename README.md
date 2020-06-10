@@ -29,7 +29,6 @@ Set summoner spell for calculated position
 ## Improvement
  - Get Ugg LoL version and Ugg version dynamically
  - ~~Make a persistent cache~~ with 1-2d retention + refresh cache button
- - Champ menu with position to set ? => Can be use full if not enough pages and selected page is not good (fill,pick,switch)
  - Clean Generated notification in Lcu
  - Persist Notification settings
  - Toggle Lcu Notifications ?

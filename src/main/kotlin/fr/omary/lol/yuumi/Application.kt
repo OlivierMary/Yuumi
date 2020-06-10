@@ -193,16 +193,25 @@ fun refreshChampionList(championsNames: List<Pair<Int, String>>) {
     }
 }
 
-fun generateItemMenu(champPair: Pair<Int, String>): MenuItem {
-    val menuItem = MenuItem(champPair.second)
+fun generateChampPosition(champId: Int, position: String): MenuItem {
+    val menuItem = MenuItem(position)
     val listener = ActionListener {
         GlobalScope.launch {
-            validateChampion(champPair.first)
+            sendChampionPostion(champId, position.toLowerCase())
         }
-    }
-    if (champPair.first == 0) {
-        menuItem.isEnabled = false
     }
     menuItem.addActionListener(listener)
     return menuItem
+}
+
+
+fun generateItemMenu(champPair: Pair<Int, String>): MenuItem {
+    val menuChamp = Menu(champPair.second)
+    listOf("Top", "Jungle", "Middle", "Bottom", "Utility", "ARAM").forEach {
+        menuChamp.add(generateChampPosition(champPair.first, it))
+    }
+    if (champPair.first == 0) {
+        menuChamp.isEnabled = false
+    }
+    return menuChamp
 }
