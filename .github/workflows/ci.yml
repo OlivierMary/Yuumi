@@ -45,12 +45,6 @@ jobs:
       id: zip-jars
       run: cd ./build/libs ; zip -r ../../Yuumi-jars.zip *
 
-    - name: Delete drafts
-      id: delete-draft
-      uses: hugo19941994/delete-draft-releases@v0.1.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -60,8 +54,7 @@ jobs:
         tag_name: ${{ steps.extract_branch.outputs.version }}
         release_name: Last build ${{ steps.extract_branch.outputs.version }}
         body: Release Tag[${{ steps.extract_branch.outputs.version }}] Sha[${{ github.sha }}]
-        draft: true
-        prerelease: false
+        prerelease: true
 
     - name: Upload Release Zip
       id: upload-release-zip
