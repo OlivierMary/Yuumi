@@ -45,6 +45,14 @@ jobs:
       id: zip-jars
       run: cd ./build/libs ; zip -r ../../Yuumi-jars.zip *
 
+    - name: Delete old build release
+      uses: dev-drprasad/delete-tag-and-release@v0.1.2
+      with:
+        delete_release: true
+        tag_name: ${{ steps.extract_branch.outputs.version }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
