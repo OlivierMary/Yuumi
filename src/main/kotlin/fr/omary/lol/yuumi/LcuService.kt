@@ -46,8 +46,7 @@ fun startYuumi() {
                     override fun onClose(code: Int, reason: String) {
                         println("Socket closed, reason: $reason")
                         if (api.isConnected) {
-                            socket = null
-                            onClientConnected()
+                            socket?.connect()
                         }
                     }
                 })

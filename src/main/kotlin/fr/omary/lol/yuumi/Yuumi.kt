@@ -5,7 +5,10 @@ import fr.omary.lol.yuumi.models.ItemDatas2
 import fr.omary.lol.yuumi.models.PositionDatas
 import generated.*
 import kotlinx.coroutines.delay
+import java.time.LocalDateTime
+import java.time.LocalDateTime.*
 
+private var lastPick: Pair<Int,LocalDateTime> = -1 to now().minusDays(1)
 private val perksByIdChamp: MutableMap<Int, List<Pair<Int, LolPerksPerkPageResource>>> = mutableMapOf()
 private val championsByIdChamp: MutableMap<Int, LolChampionsCollectionsChampion> = mutableMapOf()
 private val itemsSetsByIdChamp: MutableMap<Int, List<Triple<String?, LolItemSetsItemSet, Int>>> = mutableMapOf()
@@ -50,6 +53,10 @@ private suspend fun refreshAssignerPosition() {
 }
 
 suspend fun validateChampion(champId: Int) {
+    if (lastPick.first == champId && now().isBefore(lastPick.second.plusSeconds(30))){
+        return
+    }
+    lastPick = champId to now()
     startLoading("Send [${championsByIdChamp[champId]?.name}]")
     gameMode = getCurrentGameMode().await()
     refreshAssignerPosition()
