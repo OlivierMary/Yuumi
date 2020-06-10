@@ -36,6 +36,7 @@ Set summoner spell for calculated position
  - Change App name for windows Task Manager it's the jdk name
  - Add button to synchronize all champions if launched after Lcu / Refresh button of cache 
  - Make a screen with all champ icons + all possible position to send datas
+ - `/lol-perks/v1/inventory` to check how many page Yuumi can create
 
 ## Refactor
  - DTO for yuumi tools and not from ugg + parse ugg -> new dto
