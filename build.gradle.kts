@@ -38,17 +38,17 @@ tasks {
         }
     }
     createExe {
-        outfile = "${rootProject.name}.exe"
+        outfile = "${rootProject.name.capitalize()}.exe"
         mainClassName = "fr.omary.lol.yuumi.ApplicationKt"
         icon = "$projectDir/assets/favicon.ico"
-        productName = "Yuumi"
-        jar = "${projectDir}/build/libs/shadow-yuumi-${rootProject.version}-all.jar"
+        productName = rootProject.name.capitalize()
+        jar = "${projectDir}/build/libs/shadow-${rootProject.name}-${rootProject.version}-all.jar"
         bundledJrePath = "%JAVA_HOME%"
         splashFileName = "$projectDir/assets/splash.bmp"
         splashWaitForWindows = false
         splashTimeout = 2
-        windowTitle = "Yuumi"
-        mutexName = "Yuumi"
+        windowTitle = rootProject.name.capitalize()
+        mutexName = rootProject.name.capitalize()
 
         dependsOn(shadowJar)
     }
