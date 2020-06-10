@@ -45,10 +45,14 @@ tasks {
         jar = "${projectDir}/build/libs/shadow-yuumi-${rootProject.version}-all.jar"
         bundledJrePath = "%JAVA_HOME%"
         bundledJreAsFallback = true
+        splashFileName = "$projectDir/assets/splash.bmp"
+        splashWaitForWindows = false
+        splashTimeout = 2
 
         dependsOn(shadowJar)
     }
-    build {
+
+    build{
         dependsOn(createExe)
     }
 }
