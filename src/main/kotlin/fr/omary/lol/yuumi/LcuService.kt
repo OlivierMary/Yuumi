@@ -164,7 +164,7 @@ private fun openSocket() {
 
 
 private suspend fun handleValidateChampion(event: ClientWebSocket.Event) {
-    if (event.eventType != "Delete" && event.uri == "/lol-champ-select/v1/current-champion") {
+    if (automatic && event.eventType != "Delete" && event.uri == "/lol-champ-select/v1/current-champion") {
         validateChampion(event.data as Int)
     }
 }

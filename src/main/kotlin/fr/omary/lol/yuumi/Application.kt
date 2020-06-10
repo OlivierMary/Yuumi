@@ -18,6 +18,7 @@ private var sendNotifications: Boolean = true
 private val connected = createImage("images/Yuumi.png", "tray icon")
 private val waiting = createImage("images/waitingConnect.png", "tray icon")
 private val loading = createImage("images/loading.gif", "tray icon")
+private val automaticDisabled = createImage("images/automaticDisabled.png", "tray icon")
 private val trayIcon = TrayIcon(waiting.image)
 private val messages: MutableList<Pair<LocalDateTime, String>> = mutableListOf()
 private var champMenu = Menu("Send Synchronized Champion")
@@ -25,12 +26,15 @@ private var champMenuAtoG = Menu("[A-G]")
 private var champMenuHtoM = Menu("[H-M]")
 private var champMenuNtoS = Menu("[N-S]")
 private var champMenuTtoZ = Menu("[T-Z]")
-private const val defaultToolTip = "Yuumi"
+private const val yuumi = "Yuumi"
+private const val defaultToolTip = "$yuumi is ready"
 private const val waitingMessage = "Yuumi : Waiting LoL client to connect"
 private val tmpDir = getenv("TMP")
 private val yuumiTempDir = "${tmpDir}/yuumi"
 val rankedDirectory = File("$yuumiTempDir/ranked")
 val aramDirectory = File("$yuumiTempDir/aram")
+var automatic: Boolean = true
+var currentState = connected
 
 
 fun main() {
@@ -71,11 +75,14 @@ private fun createAndShowGUI() {
     val history = MenuItem("History")
     val optionNotifications = CheckboxMenuItem("Enable Notifications")
     optionNotifications.state = true
+    val automaticSelection = CheckboxMenuItem("Automatic selection")
+    automaticSelection.state = true
     val exitItem = MenuItem("Exit")
 
     popupMenu.add(aboutItem)
     popupMenu.addSeparator()
     popupMenu.add(optionNotifications)
+    popupMenu.add(automaticSelection)
     popupMenu.add(history)
     popupMenu.addSeparator()
     popupMenu.add(champMenu)
@@ -122,6 +129,10 @@ private fun createAndShowGUI() {
     optionNotifications.addItemListener { e ->
         sendNotifications = e.stateChange == ItemEvent.SELECTED
     }
+    automaticSelection.addItemListener { e ->
+        automatic = e.stateChange == ItemEvent.SELECTED
+        setAutomaticIcon()
+    }
 
     exitItem.addActionListener {
         stopYuumi()
@@ -152,16 +163,32 @@ fun createImage(path: String, description: String?): ImageIcon =
     ImageIcon(Thread.currentThread().contextClassLoader.getResource(path), description)
 
 fun sendSystemNotification(message: String, level: String) {
-    messages.add(Pair(LocalDateTime.now(), message))
-    trayIcon.displayMessage(
-        defaultToolTip,
-        message, TrayIcon.MessageType.valueOf(level.toUpperCase())
-    )
+    if (sendNotifications) {
+        messages.add(Pair(LocalDateTime.now(), message))
+        trayIcon.displayMessage(
+            yuumi,
+            message, TrayIcon.MessageType.valueOf(level.toUpperCase())
+        )
+    }
 }
 
 fun waitingConnect() {
     trayIcon.image = waiting.image
     trayIcon.toolTip = waitingMessage
+}
+
+fun setAutomaticIcon() {
+    currentState = if (automatic) {
+        connected
+    } else {
+        automaticDisabled
+    }
+    trayIcon.image = currentState.image
+    trayIcon.toolTip = if (automatic) {
+        defaultToolTip
+    } else {
+        "Automatic disabled"
+    }
 }
 
 fun connected() {
@@ -174,7 +201,7 @@ fun startLoading(actionMessage: String = "Processing...") {
 }
 
 fun stopLoading() {
-    trayIcon.image = connected.image
+    trayIcon.image = currentState.image
     trayIcon.toolTip = defaultToolTip
 }
 

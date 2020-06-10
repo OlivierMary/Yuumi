@@ -30,7 +30,7 @@ Set summoner spell for calculated position
  - Get Ugg LoL version and Ugg version dynamically
  - ~~Make a persistent cache~~ with 1-2d retention + refresh cache button
  - Clean Generated notification in Lcu
- - Persist Notification settings
+ - Persist settings
  - Toggle Lcu Notifications ?
  - Change App name for windows Task Manager it's the jdk name
  - Add button to synchronize all champions if launched after Lcu / Refresh button of cache 
