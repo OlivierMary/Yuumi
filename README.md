@@ -35,6 +35,7 @@ Set summoner spell for calculated position
  - Toggle Lcu Notifications ?
  - Change App name for windows Task Manager it's the jdk name
  - Add button to synchronize all champions if launched after Lcu / Refresh button of cache 
+ - Make a screen with all champ icons + all possible position to send datas
 
 ## Refactor
  - DTO for yuumi tools and not from ugg + parse ugg -> new dto
