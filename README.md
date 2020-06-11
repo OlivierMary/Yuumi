@@ -39,4 +39,7 @@ Set summoner spell for calculated position
 ## Refactor
  - DTO for yuumi tools and not from ugg + parse ugg -> new dto
  - Not dependent of com.github.stirante:lol-client-java-api
+ 
+## Fix
+ - On new caches somes datas are empty the first day => change the way of parsing datas may solve this.
 
