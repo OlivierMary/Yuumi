@@ -176,6 +176,18 @@ private fun prepareSummonerSpells(champId: Int, position: String) = JsonObject()
     this["spell2Id"] = summonerSpells?.get(1)
 }
 
+suspend fun processExistingChampions() {
+    rankedDirectory.list().map { ".*-(\\d+).json".toRegex().find(it)?.groupValues?.get(1)}.forEach { it?.toInt()?.let { it1 ->
+        try {
+            processChampion(
+                it1
+            )
+        }catch (e: Exception){
+            //nothing
+        }
+    } }
+}
+
 suspend fun processChampion(champId: Int) {
     if (champId < 1) {
         return
@@ -194,8 +206,8 @@ suspend fun processChampion(champId: Int) {
     startLoading("Process [ ${champion.id} -> ${champion.name}]...")
     println("${champion.name} process...")
 
-    val rankedDatas = getUggRankedOverviewDatas(champion)
-    val aramDatas = getUggAramOverviewDatas(champion)
+    val rankedDatas = getUggRankedOverviewDatas(champion?.name, champion?.id)
+    val aramDatas = getUggAramOverviewDatas(champion?.name, champion?.id)
 
     val newItemsList = mutableListOf<Triple<String?, LolItemSetsItemSet, Int>>()
     val newPerks = mutableListOf<Pair<Int, LolPerksPerkPageResource>>()

@@ -31,8 +31,9 @@ fun startYuumi() {
                 }
                 runBlocking {
                     initStaticVariables()
+                    notifConnected()
+                    processExistingChampions()
                 }
-                notifConnected()
 
                 socket?.setSocketListener(object : ClientWebSocket.SocketListener {
                     override fun onEvent(event: ClientWebSocket.Event) {

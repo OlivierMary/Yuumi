@@ -3,7 +3,6 @@ package fr.omary.lol.yuumi
 import com.beust.klaxon.Klaxon
 import fr.omary.lol.yuumi.models.UggARAMDatas
 import fr.omary.lol.yuumi.models.UggDatas
-import generated.LolChampionsCollectionsChampion
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -17,13 +16,13 @@ var lolUggVersion: String? = null
 var dataUggVersion: String? = null
 val httpclient: CloseableHttpClient = HttpClients.createDefault()
 
-fun getUggRankedOverviewDatas(champion: LolChampionsCollectionsChampion?): Deferred<UggDatas?> = GlobalScope.async {
+fun getUggRankedOverviewDatas(championName: String?, championId: Int?): Deferred<UggDatas?> = GlobalScope.async {
     checkUggVersions()
-    val champFile = File("$rankedDirectory/${champion?.name}-${champion?.id}.json")
+    val champFile = File("$rankedDirectory/$championName-$championId.json")
     if (!champFile.exists()) {
         champFile.writeText(
             EntityUtils.toString(
-                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/ranked_solo_5x5/${champion?.id}/$dataUggVersion.json")).entity
+                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/ranked_solo_5x5/$championId/$dataUggVersion.json")).entity
             )
         )
     }
@@ -31,13 +30,13 @@ fun getUggRankedOverviewDatas(champion: LolChampionsCollectionsChampion?): Defer
 }
 
 
-fun getUggAramOverviewDatas(champion: LolChampionsCollectionsChampion?): Deferred<UggARAMDatas?> = GlobalScope.async {
+fun getUggAramOverviewDatas(champtionName: String?, champtionId: Int?): Deferred<UggARAMDatas?> = GlobalScope.async {
     checkUggVersions()
-    val champFile = File("$aramDirectory/${champion?.name}-${champion?.id}.json")
+    val champFile = File("$aramDirectory/$champtionName-$champtionId.json")
     if (!champFile.exists()) {
         champFile.writeText(
             EntityUtils.toString(
-                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/normal_aram/${champion?.id}/$dataUggVersion.json")).entity
+                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/normal_aram/$champtionId/$dataUggVersion.json")).entity
             )
         )
     }
