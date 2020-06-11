@@ -13,14 +13,17 @@ import org.apache.http.impl.client.HttpClients
 import org.apache.http.util.EntityUtils
 import java.io.File
 
+var lolUggVersion: String? = null
+var dataUggVersion: String? = null
 val httpclient: CloseableHttpClient = HttpClients.createDefault()
 
 fun getUggRankedOverviewDatas(champion: LolChampionsCollectionsChampion?): Deferred<UggDatas?> = GlobalScope.async {
+    checkUggVersions()
     val champFile = File("$rankedDirectory/${champion?.name}-${champion?.id}.json")
     if (!champFile.exists()) {
         champFile.writeText(
             EntityUtils.toString(
-                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/10_11/ranked_solo_5x5/${champion?.id}/1.4.0.json")).entity
+                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/ranked_solo_5x5/${champion?.id}/$dataUggVersion.json")).entity
             )
         )
     }
@@ -29,13 +32,37 @@ fun getUggRankedOverviewDatas(champion: LolChampionsCollectionsChampion?): Defer
 
 
 fun getUggAramOverviewDatas(champion: LolChampionsCollectionsChampion?): Deferred<UggARAMDatas?> = GlobalScope.async {
+    checkUggVersions()
     val champFile = File("$aramDirectory/${champion?.name}-${champion?.id}.json")
     if (!champFile.exists()) {
         champFile.writeText(
             EntityUtils.toString(
-                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/10_11/normal_aram/${champion?.id}/1.4.0.json")).entity
+                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/normal_aram/${champion?.id}/$dataUggVersion.json")).entity
             )
         )
     }
     Klaxon().parse<UggARAMDatas>(champFile.readText())
+}
+
+fun getUggVersions(): Deferred<Pair<String, String>> =
+    GlobalScope.async {
+        val mainHtml = EntityUtils.toString(httpclient.execute(HttpGet("https://u.gg")).entity)
+        val mainScript = EntityUtils.toString(
+            httpclient.execute(
+                HttpGet(
+                    ".*src=\"(.*/main\\.\\w*\\.js).*".toRegex().find(mainHtml)?.groupValues?.get(1)
+                )
+            ).entity
+        )
+        // p=[{value:"10_12"
+        lolUggVersion = ".*=\\[\\{value:\"(\\d+_\\d+)\".*".toRegex().find(mainScript)?.groupValues?.get(1)
+        dataUggVersion = ".*latest\":\\s*\\{\"overview\":\"(\\d+\\.\\d+.\\d+)\".*".toRegex().find(mainScript)?.groupValues?.get(1)
+
+        lolUggVersion!! to dataUggVersion!!
+    }
+
+suspend fun checkUggVersions(){
+    if (lolUggVersion == null || dataUggVersion == null){
+        println(getUggVersions().await())
+    }
 }
