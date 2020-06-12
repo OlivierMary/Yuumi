@@ -36,7 +36,6 @@ fun startYuumi() {
                         GlobalScope.launch {
                             println(event)
                             handleValidateChampion(event)
-                            handleChooseChampion(event)
                         }
                     }
 
@@ -53,9 +52,9 @@ fun startYuumi() {
             runBlocking {
                 initStaticVariables()
                 notifConnected()
-                processExistingChampions()
+                connect()
             }
-            connected()
+            ready()
         }
     })
 }
@@ -167,17 +166,7 @@ private fun openSocket() {
 
 private suspend fun handleValidateChampion(event: ClientWebSocket.Event) {
     if (automatic && event.eventType != "Delete" && event.uri == "/lol-champ-select/v1/current-champion") {
-        validateChampion(event.data as Int)
-    }
-}
-
-private suspend fun handleChooseChampion(event: ClientWebSocket.Event) {
-    if (event.eventType != "Delete" && event.uri.startsWith("/lol-champ-select/v1/grid-champions/")) {
-        if (getChampion((event.data as LolChampSelectChampGridChampion).id) == null) {
-            processChampion((event.data as LolChampSelectChampGridChampion).id)
-        } else {
-            println("${getChampion((event.data as LolChampSelectChampGridChampion).id)?.name} already processed")
-        }
+        validateChampion(getChampionList().find { it.id == (event.data as Int) }!!)
     }
 }
 

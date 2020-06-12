@@ -11,6 +11,8 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.util.EntityUtils
 import java.io.StringReader
 
+var championList = listOf<Champion>()
+
 fun getRiotVersion(): Deferred<String> = GlobalScope.async {
     val jsonVersion = EntityUtils.toString(
         httpclient.execute(HttpGet("https://ddragon.leagueoflegends.com/api/versions.json")).entity
@@ -18,19 +20,24 @@ fun getRiotVersion(): Deferred<String> = GlobalScope.async {
     Klaxon().parseArray<String>(jsonVersion)?.get(0)!!
 }
 
-fun getChampionList(): Deferred<List<Champion>> = GlobalScope.async {
-    val championsJson = EntityUtils.toString(
-        httpclient.execute(HttpGet("https://ddragon.leagueoflegends.com/cdn/${getRiotVersion().await()}/data/en_US/champion.json")).entity
-    )
+fun getChampionList(force: Boolean = false): List<Champion> {
+    if (force || championList.isEmpty()) {
+        runBlocking {
+            championList = GlobalScope.async {
+                val championsJson = EntityUtils.toString(
+                    httpclient.execute(HttpGet("https://ddragon.leagueoflegends.com/cdn/${getRiotVersion().await()}/data/en_US/champion.json")).entity
+                )
 
-
-    val datas =Klaxon().parseJsonObject(StringReader(championsJson)).get("data") as JsonObject
-    datas.entries.map { Champion(((it.value as JsonObject).get("key") as String).toInt(),it.key) }.toList()
-
+                val datas = Klaxon().parseJsonObject(StringReader(championsJson)).get("data") as JsonObject
+                datas.entries.map { Champion(((it.value as JsonObject).get("key") as String).toInt(), it.key) }.toList()
+            }.await()
+        }
+    }
+    return championList
 }
 
-fun main(){
+fun main() {
     runBlocking {
-        getChampionList().await().forEach { println(it) }
+        getChampionList().forEach { println(it) }
     }
 }

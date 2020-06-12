@@ -1,7 +1,7 @@
 package fr.omary.lol.yuumi
 
+import fr.omary.lol.yuumi.models.Champion
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.apache.http.impl.client.CloseableHttpClient
@@ -42,10 +42,20 @@ val lastSync: File? = File("$yuumiTempDir/lastSync")
 var lastSyncDate: String = "Never"
 var sync = MenuItem("$lastSyncMessage $lastSyncDate")
 var automatic: Boolean = true
-var currentState = connected
+var currentState = waiting
 val httpclient: CloseableHttpClient = HttpClients.createDefault()
 
 fun main() {
+    setupLookAndFeel()
+    createTempsDirs()
+    SwingUtilities.invokeLater { createAndShowGUI() }
+    refreshChampionList()
+    refreshLastSyncDate()
+    automaticReSyncIfDataTooOld()
+    startYuumi()
+}
+
+private fun setupLookAndFeel() {
     try {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
     } catch (ex: UnsupportedLookAndFeelException) {
@@ -57,15 +67,10 @@ fun main() {
     } catch (ex: ClassNotFoundException) {
         ex.printStackTrace()
     }
-
-    createTempsDirs()
-
     UIManager.put("swing.boldMetal", false)
-    SwingUtilities.invokeLater { createAndShowGUI() }
-    startYuumi()
 }
 
-private fun refreshLastSyncDate(){
+private fun refreshLastSyncDate() {
     lastSyncDate = if (lastSync?.exists()!!) {
         lastSync.readText()
     } else {
@@ -91,7 +96,6 @@ private fun createAndShowGUI() {
 
     val aboutItem = MenuItem("About")
     val history = MenuItem("History")
-    refreshLastSyncDate()
 
     val optionNotifications = CheckboxMenuItem("Enable Notifications")
     optionNotifications.state = true
@@ -114,12 +118,6 @@ private fun createAndShowGUI() {
     champMenu.add(champMenuHtoM)
     champMenu.add(champMenuNtoS)
     champMenu.add(champMenuTtoZ)
-
-    // Initial champ = empty
-    champMenuAtoG.add(generateItemMenu(Pair(0, "Empty for now")))
-    champMenuHtoM.add(generateItemMenu(Pair(0, "Empty for now")))
-    champMenuNtoS.add(generateItemMenu(Pair(0, "Empty for now")))
-    champMenuTtoZ.add(generateItemMenu(Pair(0, "Empty for now")))
 
     trayIcon.popupMenu = popupMenu
     trayIcon.isImageAutoSize = true
@@ -148,8 +146,9 @@ private fun createAndShowGUI() {
     }
 
     sync.addActionListener {
-
-        syncAllChampDatas()
+        runBlocking {
+            forceReSyncChampsDatas()
+        }
     }
 
     optionNotifications.addItemListener { e ->
@@ -167,11 +166,20 @@ private fun createAndShowGUI() {
     }
 }
 
-fun syncAllChampDatas() {
-    rankedDirectory.list().forEach { File("$rankedDirectory/$it").delete() }
-    aramDirectory.list().forEach { File("$aramDirectory/$it").delete() }
-    getChampListId().forEach { GlobalScope.async { processChampion(it) } }
+fun automaticReSyncIfDataTooOld() {
+    if(lastSyncDate == "Never" || LocalDateTime.now().isAfter(LocalDateTime.parse(lastSyncDate).plusDays(1))){
+        println("Force resync")
+        forceReSyncChampsDatas()
+        refreshLastSyncDate()
+    }
+}
+
+fun forceReSyncChampsDatas() {
+    rankedDirectory.list()?.forEach { File("$rankedDirectory/$it").delete() }
+    aramDirectory.list()?.forEach { File("$aramDirectory/$it").delete() }
+    getChampionList(true) // reset cache of champions
     lastSync?.writeText(LocalDateTime.now().toString())
+    refreshChampionList()
 }
 
 
@@ -206,8 +214,15 @@ fun sendSystemNotification(message: String, level: String) {
 }
 
 fun waitingConnect() {
-    trayIcon.image = waiting.image
+    currentState = waiting
+    trayIcon.image = currentState.image
     trayIcon.toolTip = waitingMessage
+}
+
+fun connect() {
+    currentState = connected
+    trayIcon.image = currentState.image
+    trayIcon.toolTip = defaultToolTip
 }
 
 fun setAutomaticIcon() {
@@ -224,40 +239,33 @@ fun setAutomaticIcon() {
     }
 }
 
-fun connected() {
-    stopLoading()
-}
-
 fun startLoading(actionMessage: String = "Processing...") {
     trayIcon.image = loading.image
     trayIcon.toolTip = actionMessage
 }
 
-fun stopLoading() {
+fun ready() {
     trayIcon.image = currentState.image
     trayIcon.toolTip = defaultToolTip
 }
 
-fun refreshChampionList(championsNames: List<Pair<Int, String>>) {
-    champMenuAtoG.removeAll()
-    champMenuHtoM.removeAll()
-    champMenuNtoS.removeAll()
-    champMenuTtoZ.removeAll()
-    championsNames.forEach {
-        when (it.second.first()) {
+fun refreshChampionList() {
+    getChampionList().forEach {
+        when (it.name.first()) {
             in 'A'..'G' -> champMenuAtoG.add(generateItemMenu(it))
             in 'H'..'M' -> champMenuHtoM.add(generateItemMenu(it))
             in 'N'..'S' -> champMenuNtoS.add(generateItemMenu(it))
             in 'T'..'Z' -> champMenuTtoZ.add(generateItemMenu(it))
         }
+        GlobalScope.launch {  processChampion(it) }
     }
 }
 
-fun generateChampPosition(champId: Int, position: String): MenuItem {
+fun generateChampPosition(champ: Champion, position: String): MenuItem {
     val menuItem = MenuItem(position)
     val listener = ActionListener {
         GlobalScope.launch {
-            sendChampionPostion(champId, position.toLowerCase())
+            sendChampionPostion(champ, position.toLowerCase())
         }
     }
     menuItem.addActionListener(listener)
@@ -265,13 +273,10 @@ fun generateChampPosition(champId: Int, position: String): MenuItem {
 }
 
 
-fun generateItemMenu(champPair: Pair<Int, String>): MenuItem {
-    val menuChamp = Menu(champPair.second)
+fun generateItemMenu(champ: Champion): MenuItem {
+    val menuChamp = Menu(champ.name)
     listOf("Top", "Jungle", "Middle", "Bottom", "Utility", "ARAM").forEach {
-        menuChamp.add(generateChampPosition(champPair.first, it))
-    }
-    if (champPair.first == 0) {
-        menuChamp.isEnabled = false
+        menuChamp.add(generateChampPosition(champ, it))
     }
     return menuChamp
 }

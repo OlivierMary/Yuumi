@@ -1,6 +1,7 @@
 package fr.omary.lol.yuumi
 
 import com.beust.klaxon.Klaxon
+import fr.omary.lol.yuumi.models.Champion
 import fr.omary.lol.yuumi.models.UggARAMDatas
 import fr.omary.lol.yuumi.models.UggDatas
 import kotlinx.coroutines.Deferred
@@ -16,13 +17,13 @@ var lolUggVersion: String? = null
 var dataUggVersion: String? = null
 
 
-fun getUggRankedOverviewDatas(championName: String?, championId: Int?): Deferred<UggDatas?> = GlobalScope.async {
+fun getUggRankedOverviewDatas(champ: Champion): Deferred<UggDatas?> = GlobalScope.async {
     checkUggVersions()
-    val champFile = File("$rankedDirectory/$championName-$championId.json")
+    val champFile = File("$rankedDirectory/${champ.name}-${champ.id}.json")
     if (!champFile.exists()) {
         champFile.writeText(
             EntityUtils.toString(
-                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/ranked_solo_5x5/$championId/$dataUggVersion.json")).entity
+                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/ranked_solo_5x5/${champ.id}/$dataUggVersion.json")).entity
             )
         )
     }
@@ -30,13 +31,13 @@ fun getUggRankedOverviewDatas(championName: String?, championId: Int?): Deferred
 }
 
 
-fun getUggAramOverviewDatas(champtionName: String?, champtionId: Int?): Deferred<UggARAMDatas?> = GlobalScope.async {
+fun getUggAramOverviewDatas(champ: Champion): Deferred<UggARAMDatas?> = GlobalScope.async {
     checkUggVersions()
-    val champFile = File("$aramDirectory/$champtionName-$champtionId.json")
+    val champFile = File("$aramDirectory/${champ.name}-${champ.id}.json")
     if (!champFile.exists()) {
         champFile.writeText(
             EntityUtils.toString(
-                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/normal_aram/$champtionId/$dataUggVersion.json")).entity
+                httpclient.execute(HttpGet("https://stats2.u.gg/lol/1.1/overview/$lolUggVersion/normal_aram/${champ.id}/$dataUggVersion.json")).entity
             )
         )
     }

@@ -1,18 +1,20 @@
 package fr.omary.lol.yuumi
 
 import com.beust.klaxon.JsonObject
+import fr.omary.lol.yuumi.models.Champion
 import fr.omary.lol.yuumi.models.ItemDatas2
 import fr.omary.lol.yuumi.models.PositionDatas
 import generated.*
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.LocalDateTime.*
 
-private var lastPick: Pair<Int, LocalDateTime> = -1 to now().minusDays(1)
-private val perksByIdChamp: MutableMap<Int, List<Pair<Int, LolPerksPerkPageResource>>> = mutableMapOf()
-private val championsByIdChamp: MutableMap<Int, LolChampionsCollectionsChampion> = mutableMapOf()
-private val itemsSetsByIdChamp: MutableMap<Int, List<Triple<String?, LolItemSetsItemSet, Int>>> = mutableMapOf()
-private val summonerSpellsByChamp: MutableMap<Int, List<Triple<String?, List<Int>?, Int>>> = mutableMapOf()
+private var lastPick: Pair<Champion, LocalDateTime> = Champion(-1, "Nobody") to now().minusDays(1)
+private val perksByIdChamp: MutableMap<Champion, List<Pair<Int, LolPerksPerkPageResource>>> = mutableMapOf()
+private val itemsSetsByIdChamp: MutableMap<Champion, List<Triple<String?, LolItemSetsItemSet, Int>>> = mutableMapOf()
+private val summonerSpellsByChamp: MutableMap<Champion, List<Triple<String?, List<Int>?, Int>>> = mutableMapOf()
 
 private var uniqueMaps = mutableListOf<LolMapsMaps>()
 private lateinit var lolItemSetsItemSets: LolItemSetsItemSets
@@ -30,8 +32,6 @@ suspend fun initStaticVariables() {
     uniqueMaps = uniqueMapsId.map { id -> maps.await().first { m -> m.id == id } }.toMutableList()
     lolItemSetsItemSets = getItemsSets(summoner.summonerId).await()
 }
-
-fun getChampion(champId: Int) = championsByIdChamp[champId]
 
 private suspend fun waitToGetSummoner(): LolSummonerSummoner? {
     var tempSummoner: LolSummonerSummoner?
@@ -55,48 +55,42 @@ private suspend fun refreshAssignerPosition() : String {
     return assignedPosition
 }
 
-suspend fun validateChampion(champId: Int) {
-    if (lastPick.first == champId && now().isBefore(lastPick.second.plusSeconds(30))) {
+suspend fun validateChampion(champ: Champion) {
+    if (lastPick.first == champ && now().isBefore(lastPick.second.plusSeconds(30))) {
         return
     }
-    lastPick = champId to now()
-    startLoading("Send [${championsByIdChamp[champId]?.name}]")
+    lastPick = champ to now()
+    startLoading("Send [${champ.name}]")
     gameMode = getCurrentGameMode().await()
-    sendChampionPostion(champId, refreshAssignerPosition())
-    stopLoading()
+    sendChampionPostion(champ, refreshAssignerPosition())
+    ready()
 }
 
-suspend fun sendChampionPostion(champId: Int, position: String) {
-    checkProcessedOrWait(champId)
-    setPerks(champId, position)
-    setItemsSets(champId, position)
-    setSummonerSpells(champId, position)
+suspend fun sendChampionPostion(champ: Champion, position: String) {
+    checkProcessedOrWait(champ)
+    setPerks(champ, position)
+    setItemsSets(champ, position)
+    setSummonerSpells(champ, position)
     sendSystemNotification(
-        "Champ set ${championsByIdChamp[champId]?.name} - $position - $gameMode : Sent",
+        "Champ set ${champ.name} - $position - $gameMode : Sent",
         "INFO"
     )
 }
 
-private suspend fun checkProcessedOrWait(champId: Int) {
-    // In case of select too fast if champ not already processed
-    if (!championsByIdChamp.containsKey(champId) || championsByIdChamp[champId] == null) {
-        processChampion(champId)
-    } else {
-        println("${championsByIdChamp[champId]?.name} already processed")
-    }
+private suspend fun checkProcessedOrWait(champ: Champion) {
     var timeout = 0
-    while ((!perksByIdChamp.containsKey(champId) || !itemsSetsByIdChamp.containsKey(champId)) && timeout < 20) {
+    while ((!perksByIdChamp.containsKey(champ) || !itemsSetsByIdChamp.containsKey(champ)) && timeout < 20) {
         println("Waiting process...")
         delay(500)
         timeout++
     }
 }
 
-private suspend fun setPerks(champId: Int, position: String) {
-    if (perksByIdChamp.containsKey(champId) && perksByIdChamp[champId] != null) {
+private suspend fun setPerks(champ: Champion, position: String) {
+    if (perksByIdChamp.containsKey(champ) && perksByIdChamp[champ] != null) {
         resetGeneratedExistingPerks()
-        setCurrentPerk(champId, position)
-        commitPerks(champId)
+        setCurrentPerk(champ, position)
+        commitPerks(champ)
     } else {
         println("Perks : no datas")
     }
@@ -104,22 +98,22 @@ private suspend fun setPerks(champId: Int, position: String) {
 
 
 private suspend fun resetGeneratedExistingPerks() =
-    getPages().await()?.filter { p -> p.name.startsWith(TOKEN) }?.forEach { deletePages(it) }
+    getPages().await()?.filter { p -> p.name.endsWith(TOKEN) }?.forEach { deletePages(it) }
 
-private fun setCurrentPerk(champId: Int, position: String) {
+private fun setCurrentPerk(champ: Champion, position: String) {
     if (gameMode == ARAM_GAME_MODE) {
-        perksByIdChamp[champId]!!.first { p ->
-            p.second.name.contains(ARAM_POSITION) && p.second.name.contains(championsByIdChamp[champId]!!.name)
+        perksByIdChamp[champ]!!.first { p ->
+            p.second.name.contains(ARAM_POSITION)
         }.second.current = true
     } else {
         if (position == FILL_POSITION) {
-            perksByIdChamp[champId]!!.filterNot { it.second.name.contains(ARAM_POSITION) }
+            perksByIdChamp[champ]!!.filterNot { it.second.name.contains(ARAM_POSITION) }
                 .maxBy { it.first }?.second?.current = true
         } else {
-            perksByIdChamp[champId]!!.forEach { p ->
+            perksByIdChamp[champ]!!.forEach { p ->
                 run {
                     p.second.current = position.let {
-                        p.second.name.contains(it) && p.second.name.contains(championsByIdChamp[champId]!!.name)
+                        p.second.name.contains(it)
                     }
                 }
             }
@@ -127,14 +121,14 @@ private fun setCurrentPerk(champId: Int, position: String) {
     }
 }
 
-private suspend fun commitPerks(champId: Int) {
-    perksByIdChamp[champId]!!.sortedBy { it.second.current != null && it.second.current }
+private suspend fun commitPerks(champ: Champion) {
+    perksByIdChamp[champ]!!.sortedBy { it.second.current != null && it.second.current }
         .map { it to sendPage(it.second).await() }
         .filter { !it.second && it.first.second.current != null && it.first.second.current }
         .forEach {
             run {
                 sendSystemNotification(
-                    "Champ set ${championsByIdChamp[champId]?.name} : Not Enough runes pages",
+                    "Champ set ${champ.name} : Not Enough runes pages",
                     "WARNING"
                 )
                 resetGeneratedExistingPerks()
@@ -143,71 +137,47 @@ private suspend fun commitPerks(champId: Int) {
         }
 }
 
-private suspend fun setItemsSets(champId: Int, position: String) {
-    if (itemsSetsByIdChamp.containsKey(champId) && itemsSetsByIdChamp[champId] != null) {
-        resetAndPopulateItemsSets(champId, position)
+private suspend fun setItemsSets(champ: Champion, position: String) {
+    if (itemsSetsByIdChamp.containsKey(champ) && itemsSetsByIdChamp[champ] != null) {
+        resetAndPopulateItemsSets(champ, position)
         sendItems(summoner.summonerId, lolItemSetsItemSets).await()
     }
 }
 
-private fun resetAndPopulateItemsSets(champId: Int, position: String) {
-    lolItemSetsItemSets.itemSets?.removeIf { it.title.startsWith(TOKEN) }
+private fun resetAndPopulateItemsSets(champ: Champion, position: String) {
+    lolItemSetsItemSets.itemSets?.removeIf { it.title.endsWith(TOKEN) }
     val items = if (position == FILL_POSITION) {
-        itemsSetsByIdChamp[champId]!!.sortedBy { it.third }.map { it.second }
+        itemsSetsByIdChamp[champ]!!.sortedBy { it.third }.map { it.second }
     } else {
-        itemsSetsByIdChamp[champId]!!.sortedBy { it.first == position }.map { it.second }
+        itemsSetsByIdChamp[champ]!!.sortedBy { it.first == position }.map { it.second }
     }
     lolItemSetsItemSets.itemSets?.addAll(items)
 }
 
-private suspend fun setSummonerSpells(champId: Int, position: String) {
-    if (summonerSpellsByChamp.containsKey(champId) && summonerSpellsByChamp[champId] != null) {
-        sendSummonerSpells(prepareSummonerSpells(champId, position)).await()
+private suspend fun setSummonerSpells(champ: Champion, position: String) {
+    if (summonerSpellsByChamp.containsKey(champ) && summonerSpellsByChamp[champ] != null) {
+        sendSummonerSpells(prepareSummonerSpells(champ, position)).await()
     }
 }
 
-private fun prepareSummonerSpells(champId: Int, position: String) = JsonObject().apply {
+private fun prepareSummonerSpells(champ: Champion, position: String) = JsonObject().apply {
     val summonerSpells: List<Int>? = if (position == FILL_POSITION) {
-        summonerSpellsByChamp[champId]?.filter { it.first != ARAM_POSITION }?.maxBy { it.third }?.second
+        summonerSpellsByChamp[champ]?.filter { it.first != ARAM_POSITION }?.maxBy { it.third }?.second
     } else {
-        summonerSpellsByChamp[champId]?.first { it.first == position }?.second
+        summonerSpellsByChamp[champ]?.first { it.first == position }?.second
     }
     this["spell1Id"] = summonerSpells?.get(0)
     this["spell2Id"] = summonerSpells?.get(1)
 }
 
-suspend fun processExistingChampions() {
-    rankedDirectory.list().map { ".*-(\\d+).json".toRegex().find(it)?.groupValues?.get(1)}.forEach { it?.toInt()?.let { it1 ->
-        try {
-            processChampion(it1)
-        }catch (e: Exception){
-            //nothing
-        }
-    } }
-}
 
-fun getChampListId(): MutableSet<Int> = championsByIdChamp.keys
+suspend fun processChampion(champ: Champion) {
 
-suspend fun processChampion(champId: Int) {
-    if (champId < 1) {
-        return
-    }
-    startLoading("Process [$champId]...")
+    startLoading("Process [ ${champ.id} -> ${champ.name}]...")
+    println("${champ.name} process...")
 
-    var champion = championsByIdChamp[champId]
-    if (champion == null) {
-        champion = getChampion(summoner.summonerId, champId).await()
-    }
-    if (champion == null) {
-        return // maybe client closed before process
-    }
-    championsByIdChamp[champId] = champion
-
-    startLoading("Process [ ${champion.id} -> ${champion.name}]...")
-    println("${champion.name} process...")
-
-    val rankedDatas = getUggRankedOverviewDatas(champion?.name, champion?.id)
-    val aramDatas = getUggAramOverviewDatas(champion?.name, champion?.id)
+    val rankedDatas = getUggRankedOverviewDatas(champ)
+    val aramDatas = getUggAramOverviewDatas(champ)
 
     val newItemsList = mutableListOf<Triple<String?, LolItemSetsItemSet, Int>>()
     val newPerks = mutableListOf<Pair<Int, LolPerksPerkPageResource>>()
@@ -218,35 +188,30 @@ suspend fun processChampion(champId: Int) {
         when (uniqueMap.mapStringId) {
             "SR" -> {
                 for (role in rankedDatas.await()?.world?.platPlus?.allRoles()!!) {
-                    newItemsList.add(generateItemsSet(champion, uniqueMap, role))
-                    newPerks.add(generatePerk(role, champion, uniqueMap))
+                    newItemsList.add(generateItemsSet(champ, uniqueMap, role))
+                    newPerks.add(generatePerk(role, champ, uniqueMap))
                     newSummonerSpells.add(generateSummoner(role))
                 }
             }
             "HA" -> {
-                newItemsList.add(generateItemsSet(champion, uniqueMap, aramDatas.await()?.world?.aram?.aram()))
-                newPerks.add(generatePerk(aramDatas.await()?.world?.aram?.aram(), champion, uniqueMap))
+                newItemsList.add(generateItemsSet(champ, uniqueMap, aramDatas.await()?.world?.aram?.aram()))
+                newPerks.add(generatePerk(aramDatas.await()?.world?.aram?.aram(), champ, uniqueMap))
                 newSummonerSpells.add(generateSummoner(aramDatas.await()?.world?.aram?.aram()))
             }
         }
     }
-    itemsSetsByIdChamp[champId] = newItemsList
-    perksByIdChamp[champId] = newPerks
-    summonerSpellsByChamp[champId] = newSummonerSpells
-    println("${champion.name} processed")
-    refreshChampTray()
-    stopLoading()
+    itemsSetsByIdChamp[champ] = newItemsList
+    perksByIdChamp[champ] = newPerks
+    summonerSpellsByChamp[champ] = newSummonerSpells
+    println("${champ.name} processed")
+    ready()
 }
 
-fun refreshChampTray() {
-    refreshChampionList(championsByIdChamp.values.sortedBy { it.name }.map { it.id to it.name })
-}
-
-private fun generateItemsSet(champion: LolChampionsCollectionsChampion?, uniqueMap: LolMapsMaps, role: PositionDatas?) =
+private fun generateItemsSet(champion: Champion, uniqueMap: LolMapsMaps, role: PositionDatas?) =
     Triple(role?.name, LolItemSetsItemSet().apply {
-        title = "$TOKEN ${champion?.name} ${uniqueMap.mapStringId} ${role?.name}"
+        title = "${champion.name} ${uniqueMap.mapStringId} ${role?.name} $TOKEN"
         associatedMaps = listOf(uniqueMap.id.toInt())
-        associatedChampions = listOf(champion?.id)
+        associatedChampions = listOf(champion.id)
         map = uniqueMap.mapStringId
         blocks = listOf(
             generateSkillsBlock(role),
@@ -283,12 +248,12 @@ private fun generateSkillsBlock(role: PositionDatas?) = LolItemSetsItemSetBlock(
 private fun generateSummoner(role: PositionDatas?) =
     Triple(role?.name, role?.summonerSpells!!.summonerSpells, role.winTotal!!.total)
 
-private fun generatePerk(role: PositionDatas?, champion: LolChampionsCollectionsChampion?, uniqueMap: LolMapsMaps) =
+private fun generatePerk(role: PositionDatas?, champion: Champion, uniqueMap: LolMapsMaps) =
     role?.winTotal!!.total to LolPerksPerkPageResource().apply {
         primaryStyleId = role.runes?.masteryA
         subStyleId = role.runes?.masteryB
         selectedPerkIds = role.runes?.additionnalMastery
-        name = "$TOKEN ${champion?.name} ${uniqueMap.mapStringId} ${role.name}"
+        name = "${champion.name} ${uniqueMap.mapStringId} ${role.name} $TOKEN"
     }
 
 
