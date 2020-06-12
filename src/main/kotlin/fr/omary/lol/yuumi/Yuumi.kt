@@ -37,7 +37,7 @@ private suspend fun waitToGetSummoner(): LolSummonerSummoner? {
     return tempSummoner
 }
 
-private suspend fun refreshAssignerPosition() : String {
+private suspend fun refreshAssignerPosition(): String {
     val me = getTeam().await()?.first { x -> x.summonerId == summoner.summonerId }
     var assignedPosition = me?.assignedPosition
     if (assignedPosition == null || assignedPosition == "") {
@@ -93,7 +93,7 @@ private suspend fun setPerks(champ: Champion, position: String) {
 
 
 private suspend fun resetGeneratedExistingPerks() =
-    getPages().await()?.filter { p -> p.name.endsWith(TOKEN) }?.forEach { deletePages(it) }
+    getPages().await()?.filter { p -> p.name.endsWith(TOKEN) }?.forEach { deletePage(it).await() }
 
 private fun setCurrentPerk(champ: Champion, position: String) {
     if (gameMode == ARAM_GAME_MODE) {
@@ -142,10 +142,16 @@ private suspend fun setItemsSets(champ: Champion, position: String) {
 private fun resetAndPopulateItemsSets(champ: Champion, position: String) {
     lolItemSetsItemSets.itemSets?.removeIf { it.title.endsWith(TOKEN) }
     val items = if (position == FILL_POSITION) {
-        itemsSetsByIdChamp[champ]!!.sortedBy { it.third }.map { it.second }
+        itemsSetsByIdChamp[champ]!!.sortedByDescending { it.third }.map { it.second }
     } else {
-        itemsSetsByIdChamp[champ]!!.sortedBy { it.first == position }.map { it.second }
+        itemsSetsByIdChamp[champ]!!.sortedByDescending { it.first == position }.map { it.second }
     }
+    var index = 0
+    items.forEach {
+        it.title = "$index - ${it.title}"
+        index++
+    }
+
     lolItemSetsItemSets.itemSets?.addAll(items)
 }
 

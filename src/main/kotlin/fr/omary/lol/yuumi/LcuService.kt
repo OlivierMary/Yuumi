@@ -36,7 +36,7 @@ fun startYuumi() {
                 socket?.setSocketListener(object : ClientWebSocket.SocketListener {
                     override fun onEvent(event: ClientWebSocket.Event) {
                         GlobalScope.launch {
-                            println(event)
+                            //println(event)
                             handleValidateChampion(event)
                         }
                     }
@@ -129,8 +129,8 @@ fun getTeam(): Deferred<MutableList<LolLobbyTeamBuilderChampSelectPlayerSelectio
     )?.myTeam
 }
 
-fun deletePages(page: LolPerksPerkPageResource) =
-    GlobalScope.launch { api.executeDelete("/lol-perks/v1/pages/${page.id}") }
+fun deletePage(page: LolPerksPerkPageResource) =
+    GlobalScope.async { api.executeDelete("/lol-perks/v1/pages/${page.id}") }
 
 fun getPages(): Deferred<Array<LolPerksPerkPageResource>?> = GlobalScope.async {
     api.executeGet("/lol-perks/v1/pages", Array<LolPerksPerkPageResource>::class.java)
