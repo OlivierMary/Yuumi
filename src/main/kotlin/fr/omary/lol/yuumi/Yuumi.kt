@@ -204,7 +204,7 @@ suspend fun processChampion(champ: Champion) {
 
 private fun generateItemsSet(champion: Champion, map: LoLMap, role: PositionDatas?) =
     Triple(role?.name, LolItemSetsItemSet().apply {
-        title = "${champion.name} ${map} ${role?.name} $TOKEN"
+        title = "${champion.name} ${map.name} ${role?.name} $TOKEN"
         associatedMaps = listOf(map.id)
         associatedChampions = listOf(champion.id)
         this.map = map.name
