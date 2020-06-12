@@ -76,16 +76,18 @@ fun notifConnected() {
 }
 
 fun sendLcuNotif(title: String, detail: String, idImage: Int) {
-    val notif = PlayerNotificationsPlayerNotificationResource()
-    notif.titleKey = "pre_translated_title"
-    notif.detailKey = "pre_translated_details"
-    val data = JsonObject()
-    data["title"] = title
-    data["details"] = detail
-    notif.data = data
-    notif.iconUrl = "https://ddragon.leagueoflegends.com/cdn/10.11.1/img/champion/Yuumi.png"
-    notif.backgroundUrl = "https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Yuumi_$idImage.jpg"
-    api.executePost("/player-notifications/v1/notifications", notif)
+    if (sendNotifications) {
+        val notif = PlayerNotificationsPlayerNotificationResource()
+        notif.titleKey = "pre_translated_title"
+        notif.detailKey = "pre_translated_details"
+        val data = JsonObject()
+        data["title"] = title
+        data["details"] = detail
+        notif.data = data
+        notif.iconUrl = "https://ddragon.leagueoflegends.com/cdn/10.11.1/img/champion/Yuumi.png"
+        notif.backgroundUrl = "https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Yuumi_$idImage.jpg"
+        api.executePost("/player-notifications/v1/notifications", notif)
+    }
 }
 
 fun getCurrentSummoner(): Deferred<LolSummonerSummoner> = GlobalScope.async {

@@ -18,7 +18,7 @@ import kotlin.system.exitProcess
 
 // Source Example : https://docs.oracle.com/javase/tutorial/displayCode.html?code=https://docs.oracle.com/javase/tutorial/uiswing/examples/misc/TrayIconDemoProject/src/misc/TrayIconDemo.java
 
-private var sendNotifications: Boolean = true
+var sendNotifications: Boolean = true
 private val connected = createImage("images/Yuumi.png", "tray icon")
 private val waiting = createImage("images/waitingConnect.png", "tray icon")
 private val loading = createImage("images/loading.gif", "tray icon")
