@@ -10,8 +10,11 @@ import java.awt.*
 import java.awt.event.ActionListener
 import java.awt.event.ItemEvent
 import java.io.File
+import java.io.FileReader
+import java.io.FileWriter
 import java.lang.System.getenv
 import java.time.LocalDateTime
+import java.util.*
 import javax.swing.*
 import kotlin.system.exitProcess
 
@@ -36,6 +39,7 @@ private const val waitingMessage = "Yuumi : Waiting LoL client to connect"
 private const val lastSyncMessage = "Refresh - Last Sync : "
 private val tmpDir = getenv("TMP")
 private val yuumiTempDir = "${tmpDir}/yuumi"
+private val yuumiConfig = "$yuumiTempDir/config"
 val rankedDirectory = File("$yuumiTempDir/ranked")
 val aramDirectory = File("$yuumiTempDir/aram")
 val lastSync: File? = File("$yuumiTempDir/lastSync")
@@ -48,11 +52,33 @@ val httpclient: CloseableHttpClient = HttpClients.createDefault()
 fun main() {
     setupLookAndFeel()
     createTempsDirs()
+    loadConfig()
     SwingUtilities.invokeLater { createAndShowGUI() }
     refreshChampionList()
     refreshLastSyncDate()
     automaticReSyncIfDataTooOld()
     startYuumi()
+}
+
+fun loadConfig() {
+    if (File(yuumiConfig).exists()) {
+        val properties = Properties()
+        properties.load(FileReader(yuumiConfig))
+        if (properties["sendNotifications"] != null) {
+            sendNotifications = properties["sendNotifications"].toString().toBoolean()
+        }
+        if (properties["automatic"] != null) {
+            automatic = properties["automatic"].toString().toBoolean()
+        }
+        setAutomaticIcon()
+    }
+}
+
+fun storeConfig() {
+    val properties = Properties()
+    properties["sendNotifications"] = sendNotifications.toString()
+    properties["automatic"] = automatic.toString()
+    properties.store(FileWriter(yuumiConfig), "Store Properties")
 }
 
 private fun setupLookAndFeel() {
@@ -98,9 +124,9 @@ private fun createAndShowGUI() {
     val history = MenuItem("History")
 
     val optionNotifications = CheckboxMenuItem("Enable Notifications")
-    optionNotifications.state = true
+    optionNotifications.state = sendNotifications
     val automaticSelection = CheckboxMenuItem("Automatic selection")
-    automaticSelection.state = true
+    automaticSelection.state = automatic
     val exitItem = MenuItem("Exit")
 
     popupMenu.add(aboutItem)
@@ -153,10 +179,12 @@ private fun createAndShowGUI() {
 
     optionNotifications.addItemListener { e ->
         sendNotifications = e.stateChange == ItemEvent.SELECTED
+        storeConfig()
     }
     automaticSelection.addItemListener { e ->
         automatic = e.stateChange == ItemEvent.SELECTED
         setAutomaticIcon()
+        storeConfig()
     }
 
     exitItem.addActionListener {
@@ -167,7 +195,7 @@ private fun createAndShowGUI() {
 }
 
 fun automaticReSyncIfDataTooOld() {
-    if(lastSyncDate == "Never" || LocalDateTime.now().isAfter(LocalDateTime.parse(lastSyncDate).plusDays(1))){
+    if (lastSyncDate == "Never" || LocalDateTime.now().isAfter(LocalDateTime.parse(lastSyncDate).plusDays(1))) {
         println("Force resync")
         forceReSyncChampsDatas()
         refreshLastSyncDate()
@@ -227,7 +255,11 @@ fun connect() {
 
 fun setAutomaticIcon() {
     currentState = if (automatic) {
-        connected
+        if (apiIsConnected()) {
+            connected
+        } else {
+            waiting
+        }
     } else {
         automaticDisabled
     }
@@ -257,7 +289,7 @@ fun refreshChampionList() {
             in 'N'..'S' -> champMenuNtoS.add(generateItemMenu(it))
             in 'T'..'Z' -> champMenuTtoZ.add(generateItemMenu(it))
         }
-        GlobalScope.launch {  processChampion(it) }
+        GlobalScope.launch { processChampion(it) }
     }
 }
 
