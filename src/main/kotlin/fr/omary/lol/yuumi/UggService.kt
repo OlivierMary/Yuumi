@@ -14,7 +14,7 @@ import java.io.File
 
 var lolUggVersion: String? = null
 var dataUggVersion: String? = null
-val httpclient: CloseableHttpClient = HttpClients.createDefault()
+
 
 fun getUggRankedOverviewDatas(championName: String?, championId: Int?): Deferred<UggDatas?> = GlobalScope.async {
     checkUggVersions()

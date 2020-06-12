@@ -4,6 +4,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.apache.http.impl.client.CloseableHttpClient
+import org.apache.http.impl.client.HttpClients
 import java.awt.*
 import java.awt.event.ActionListener
 import java.awt.event.ItemEvent
@@ -41,7 +43,7 @@ var lastSyncDate: String = "Never"
 var sync = MenuItem("$lastSyncMessage $lastSyncDate")
 var automatic: Boolean = true
 var currentState = connected
-
+val httpclient: CloseableHttpClient = HttpClients.createDefault()
 
 fun main() {
     try {
