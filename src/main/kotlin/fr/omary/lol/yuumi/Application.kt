@@ -1,7 +1,9 @@
 package fr.omary.lol.yuumi
 
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.awt.*
 import java.awt.event.ActionListener
 import java.awt.event.ItemEvent
@@ -29,10 +31,14 @@ private var champMenuTtoZ = Menu("[T-Z]")
 private const val yuumi = "Yuumi"
 private const val defaultToolTip = "$yuumi is ready"
 private const val waitingMessage = "Yuumi : Waiting LoL client to connect"
+private const val lastSyncMessage = "Refresh - Last Sync : "
 private val tmpDir = getenv("TMP")
 private val yuumiTempDir = "${tmpDir}/yuumi"
 val rankedDirectory = File("$yuumiTempDir/ranked")
 val aramDirectory = File("$yuumiTempDir/aram")
+val lastSync: File? = File("$yuumiTempDir/lastSync")
+var lastSyncDate: String = "Never"
+var sync = MenuItem("$lastSyncMessage $lastSyncDate")
 var automatic: Boolean = true
 var currentState = connected
 
@@ -57,10 +63,20 @@ fun main() {
     startYuumi()
 }
 
+private fun refreshLastSyncDate(){
+    lastSyncDate = if (lastSync?.exists()!!) {
+        lastSync.readText()
+    } else {
+        "Never"
+    }
+    sync.label = "$lastSyncMessage $lastSyncDate"
+}
+
 private fun createTempsDirs() {
     rankedDirectory.mkdirs()
     aramDirectory.mkdirs()
 }
+
 
 private fun createAndShowGUI() {
     if (!SystemTray.isSupported()) {
@@ -73,6 +89,8 @@ private fun createAndShowGUI() {
 
     val aboutItem = MenuItem("About")
     val history = MenuItem("History")
+    refreshLastSyncDate()
+
     val optionNotifications = CheckboxMenuItem("Enable Notifications")
     optionNotifications.state = true
     val automaticSelection = CheckboxMenuItem("Automatic selection")
@@ -84,6 +102,7 @@ private fun createAndShowGUI() {
     popupMenu.add(optionNotifications)
     popupMenu.add(automaticSelection)
     popupMenu.add(history)
+    popupMenu.add(sync)
     popupMenu.addSeparator()
     popupMenu.add(champMenu)
     popupMenu.addSeparator()
@@ -126,6 +145,11 @@ private fun createAndShowGUI() {
         showHistory()
     }
 
+    sync.addActionListener {
+
+        syncAllChampDatas()
+    }
+
     optionNotifications.addItemListener { e ->
         sendNotifications = e.stateChange == ItemEvent.SELECTED
     }
@@ -139,6 +163,13 @@ private fun createAndShowGUI() {
         tray.remove(trayIcon)
         exitProcess(0)
     }
+}
+
+fun syncAllChampDatas() {
+    rankedDirectory.list().forEach { File("$rankedDirectory/$it").delete() }
+    aramDirectory.list().forEach { File("$aramDirectory/$it").delete() }
+    getChampListId().forEach { GlobalScope.async { processChampion(it) } }
+    lastSync?.writeText(LocalDateTime.now().toString())
 }
 
 

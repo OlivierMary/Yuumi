@@ -27,7 +27,7 @@ Set summoner spell for calculated position
 
 # TODO
 ## Improvement
- - ~~Make a persistent cache~~ with 1-2d retention + refresh cache button
+ - ~~Make a persistent cache~~ with 1-2d retention ~~+ refresh cache button~~
  - Clean Generated notification in Lcu
  - Persist settings
  - Toggle Lcu Notifications ?

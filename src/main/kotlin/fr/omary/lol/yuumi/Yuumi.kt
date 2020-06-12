@@ -179,14 +179,14 @@ private fun prepareSummonerSpells(champId: Int, position: String) = JsonObject()
 suspend fun processExistingChampions() {
     rankedDirectory.list().map { ".*-(\\d+).json".toRegex().find(it)?.groupValues?.get(1)}.forEach { it?.toInt()?.let { it1 ->
         try {
-            processChampion(
-                it1
-            )
+            processChampion(it1)
         }catch (e: Exception){
             //nothing
         }
     } }
 }
+
+fun getChampListId(): MutableSet<Int> = championsByIdChamp.keys
 
 suspend fun processChampion(champId: Int) {
     if (champId < 1) {

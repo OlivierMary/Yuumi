@@ -29,11 +29,7 @@ fun startYuumi() {
                 } else {
                     println("Socket connected")
                 }
-                runBlocking {
-                    initStaticVariables()
-                    notifConnected()
-                    processExistingChampions()
-                }
+
 
                 socket?.setSocketListener(object : ClientWebSocket.SocketListener {
                     override fun onEvent(event: ClientWebSocket.Event) {
@@ -53,6 +49,11 @@ fun startYuumi() {
                 })
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+            runBlocking {
+                initStaticVariables()
+                notifConnected()
+                processExistingChampions()
             }
             connected()
         }
