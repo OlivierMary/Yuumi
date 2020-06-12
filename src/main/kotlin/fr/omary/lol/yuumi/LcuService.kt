@@ -106,23 +106,12 @@ fun sendSummonerSpells(spells: JsonObject): Deferred<Boolean> = GlobalScope.asyn
     )
 }
 
-fun getMaps(): Deferred<Array<LolMapsMaps>> =
-    GlobalScope.async { api.executeGet("/lol-maps/v2/maps", Array<LolMapsMaps>::class.java) }
-
 fun getItemsSets(summonerId: Long): Deferred<LolItemSetsItemSets> = GlobalScope.async {
     api.executeGet(
         "/lol-item-sets/v1/item-sets/${summonerId}/sets",
         LolItemSetsItemSets::class.java
     )
 }
-
-fun getChampion(summonerId: Long, champId: Int): Deferred<LolChampionsCollectionsChampion?> = GlobalScope.async {
-    api.executeGet(
-        "/lol-champions/v1/inventories/${summonerId}/champions/${champId}",
-        LolChampionsCollectionsChampion::class.java
-    )
-}
-
 
 fun sendItems(summonerId: Long?, items: LolItemSetsItemSets): Deferred<Boolean> = GlobalScope.async {
     api.executePut(
@@ -140,8 +129,8 @@ fun getTeam(): Deferred<MutableList<LolLobbyTeamBuilderChampSelectPlayerSelectio
     )?.myTeam
 }
 
-suspend fun deletePages(page: LolPerksPerkPageResource) =
-    GlobalScope.async { api.executeDelete("/lol-perks/v1/pages/${page.id}") }.await()
+fun deletePages(page: LolPerksPerkPageResource) =
+    GlobalScope.launch { api.executeDelete("/lol-perks/v1/pages/${page.id}") }
 
 fun getPages(): Deferred<Array<LolPerksPerkPageResource>?> = GlobalScope.async {
     api.executeGet("/lol-perks/v1/pages", Array<LolPerksPerkPageResource>::class.java)

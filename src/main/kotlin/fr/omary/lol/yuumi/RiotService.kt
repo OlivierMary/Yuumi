@@ -3,6 +3,7 @@ package fr.omary.lol.yuumi
 import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Klaxon
 import fr.omary.lol.yuumi.models.Champion
+import fr.omary.lol.yuumi.models.LoLMap
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -11,7 +12,11 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.util.EntityUtils
 import java.io.StringReader
 
-var championList = listOf<Champion>()
+const val ARAM_MAP = "HA"
+const val SR_MAP = "SR"
+
+private var championList = listOf<Champion>()
+private var mapList = listOf(LoLMap(12,ARAM_MAP), LoLMap(11,SR_MAP))
 
 fun getRiotVersion(): Deferred<String> = GlobalScope.async {
     val jsonVersion = EntityUtils.toString(
@@ -35,6 +40,12 @@ fun getChampionList(force: Boolean = false): List<Champion> {
     }
     return championList
 }
+
+fun getMapsList(): List<LoLMap> {
+    return mapList
+}
+
+
 
 fun main() {
     runBlocking {

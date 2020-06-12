@@ -3,11 +3,10 @@ package fr.omary.lol.yuumi
 import com.beust.klaxon.JsonObject
 import fr.omary.lol.yuumi.models.Champion
 import fr.omary.lol.yuumi.models.ItemDatas2
+import fr.omary.lol.yuumi.models.LoLMap
 import fr.omary.lol.yuumi.models.PositionDatas
 import generated.*
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.LocalDateTime.*
 
@@ -16,7 +15,6 @@ private val perksByIdChamp: MutableMap<Champion, List<Pair<Int, LolPerksPerkPage
 private val itemsSetsByIdChamp: MutableMap<Champion, List<Triple<String?, LolItemSetsItemSet, Int>>> = mutableMapOf()
 private val summonerSpellsByChamp: MutableMap<Champion, List<Triple<String?, List<Int>?, Int>>> = mutableMapOf()
 
-private var uniqueMaps = mutableListOf<LolMapsMaps>()
 private lateinit var lolItemSetsItemSets: LolItemSetsItemSets
 private lateinit var summoner: LolSummonerSummoner
 private var gameMode: String? = null
@@ -27,9 +25,6 @@ private const val ARAM_GAME_MODE = "ARAM"
 
 suspend fun initStaticVariables() {
     summoner = waitToGetSummoner()!!
-    val maps = getMaps()
-    val uniqueMapsId = maps.await().map(LolMapsMaps::id).distinct()
-    uniqueMaps = uniqueMapsId.map { id -> maps.await().first { m -> m.id == id } }.toMutableList()
     lolItemSetsItemSets = getItemsSets(summoner.summonerId).await()
 }
 
@@ -176,27 +171,27 @@ suspend fun processChampion(champ: Champion) {
     startLoading("Process [ ${champ.id} -> ${champ.name}]...")
     println("${champ.name} process...")
 
-    val rankedDatas = getUggRankedOverviewDatas(champ)
-    val aramDatas = getUggAramOverviewDatas(champ)
+    val rankedDatas = getUggRankedOverviewDatas(champ).await()
+    val aramDatas = getUggAramOverviewDatas(champ).await()
 
     val newItemsList = mutableListOf<Triple<String?, LolItemSetsItemSet, Int>>()
     val newPerks = mutableListOf<Pair<Int, LolPerksPerkPageResource>>()
     val newSummonerSpells = mutableListOf<Triple<String?, List<Int>?, Int>>()
 
 
-    for (uniqueMap in uniqueMaps) {
-        when (uniqueMap.mapStringId) {
-            "SR" -> {
-                for (role in rankedDatas.await()?.world?.platPlus?.allRoles()!!) {
-                    newItemsList.add(generateItemsSet(champ, uniqueMap, role))
-                    newPerks.add(generatePerk(role, champ, uniqueMap))
+    for (map in getMapsList()) {
+        when (map.name) {
+            SR_MAP -> {
+                for (role in rankedDatas?.world?.platPlus?.allRoles()!!) {
+                    newItemsList.add(generateItemsSet(champ, map, role))
+                    newPerks.add(generatePerk(role, champ, map))
                     newSummonerSpells.add(generateSummoner(role))
                 }
             }
-            "HA" -> {
-                newItemsList.add(generateItemsSet(champ, uniqueMap, aramDatas.await()?.world?.aram?.aram()))
-                newPerks.add(generatePerk(aramDatas.await()?.world?.aram?.aram(), champ, uniqueMap))
-                newSummonerSpells.add(generateSummoner(aramDatas.await()?.world?.aram?.aram()))
+            ARAM_MAP -> {
+                newItemsList.add(generateItemsSet(champ, map, aramDatas?.world?.aram?.aram()))
+                newPerks.add(generatePerk(aramDatas?.world?.aram?.aram(), champ, map))
+                newSummonerSpells.add(generateSummoner(aramDatas?.world?.aram?.aram()))
             }
         }
     }
@@ -207,12 +202,12 @@ suspend fun processChampion(champ: Champion) {
     ready()
 }
 
-private fun generateItemsSet(champion: Champion, uniqueMap: LolMapsMaps, role: PositionDatas?) =
+private fun generateItemsSet(champion: Champion, map: LoLMap, role: PositionDatas?) =
     Triple(role?.name, LolItemSetsItemSet().apply {
-        title = "${champion.name} ${uniqueMap.mapStringId} ${role?.name} $TOKEN"
-        associatedMaps = listOf(uniqueMap.id.toInt())
+        title = "${champion.name} ${map} ${role?.name} $TOKEN"
+        associatedMaps = listOf(map.id)
         associatedChampions = listOf(champion.id)
-        map = uniqueMap.mapStringId
+        this.map = map.name
         blocks = listOf(
             generateSkillsBlock(role),
             generateItemsBlock("Starter Items", role?.startItems?.itemsId),
@@ -248,12 +243,12 @@ private fun generateSkillsBlock(role: PositionDatas?) = LolItemSetsItemSetBlock(
 private fun generateSummoner(role: PositionDatas?) =
     Triple(role?.name, role?.summonerSpells!!.summonerSpells, role.winTotal!!.total)
 
-private fun generatePerk(role: PositionDatas?, champion: Champion, uniqueMap: LolMapsMaps) =
+private fun generatePerk(role: PositionDatas?, champion: Champion, map: LoLMap) =
     role?.winTotal!!.total to LolPerksPerkPageResource().apply {
         primaryStyleId = role.runes?.masteryA
         subStyleId = role.runes?.masteryB
         selectedPerkIds = role.runes?.additionnalMastery
-        name = "${champion.name} ${uniqueMap.mapStringId} ${role.name} $TOKEN"
+        name = "${champion.name} ${map.name} ${role.name} $TOKEN"
     }
 
 
