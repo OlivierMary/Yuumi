@@ -148,7 +148,7 @@ private fun resetAndPopulateItemsSets(champ: Champion, position: String) {
     }
     var index = 0
     items.forEach {
-        it.title = "$index - ${it.title}"
+        it.sortrank = index
         index++
     }
 
