@@ -282,6 +282,10 @@ fun ready() {
 }
 
 fun refreshChampionList() {
+    champMenuAtoG.removeAll()
+    champMenuHtoM.removeAll()
+    champMenuNtoS.removeAll()
+    champMenuTtoZ.removeAll()
     getChampionList().forEach {
         when (it.name.first()) {
             in 'A'..'G' -> champMenuAtoG.add(generateItemMenu(it))
