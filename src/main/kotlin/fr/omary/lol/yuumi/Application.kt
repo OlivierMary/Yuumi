@@ -207,6 +207,7 @@ fun forceReSyncChampsDatas() {
     aramDirectory.list()?.forEach { File("$aramDirectory/$it").delete() }
     getChampionList(true) // reset cache of champions
     lastSync?.writeText(LocalDateTime.now().toString())
+    refreshLastSyncDate()
     refreshChampionList()
 }
 
