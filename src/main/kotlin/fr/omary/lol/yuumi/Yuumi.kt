@@ -25,7 +25,6 @@ private const val ARAM_GAME_MODE = "ARAM"
 
 suspend fun initStaticVariables() {
     summoner = waitToGetSummoner()!!
-    lolItemSetsItemSets = getItemsSets(summoner.summonerId).await()
 }
 
 private suspend fun waitToGetSummoner(): LolSummonerSummoner? {
@@ -133,6 +132,7 @@ private suspend fun commitPerks(champ: Champion) {
 }
 
 private suspend fun setItemsSets(champ: Champion, position: String) {
+    lolItemSetsItemSets = getItemsSets(summoner.summonerId).await() // Refresh if user change others items
     if (itemsSetsByIdChamp.containsKey(champ) && itemsSetsByIdChamp[champ] != null) {
         resetAndPopulateItemsSets(champ, position)
         sendItems(summoner.summonerId, lolItemSetsItemSets).await()
@@ -147,12 +147,23 @@ private fun resetAndPopulateItemsSets(champ: Champion, position: String) {
         itemsSetsByIdChamp[champ]!!.sortedByDescending { it.first == position }.map { it.second }
     }
     var index = 0
-    items.forEach {
-        it.sortrank = index
-        index++
-    }
+    val itemsRenamed = items.map {
+        LolItemSetsItemSet().apply {
+            title = "${index++} - ${it.title}"
+            associatedChampions = it.associatedChampions
+            associatedMaps = it.associatedMaps
+            blocks = it.blocks
+            map = it.map
+            mode = it.mode
+            preferredItemSlots = it.preferredItemSlots
+            sortrank = it.sortrank
+            startedFrom
+            type = it.type
 
-    lolItemSetsItemSets.itemSets?.addAll(items)
+        }
+    }.toList()
+
+    lolItemSetsItemSets.itemSets?.addAll(itemsRenamed)
 }
 
 private suspend fun setSummonerSpells(champ: Champion, position: String) {
