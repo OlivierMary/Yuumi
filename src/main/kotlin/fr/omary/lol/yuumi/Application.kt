@@ -203,8 +203,8 @@ fun automaticReSyncIfDataTooOld() {
 }
 
 fun forceReSyncChampsDatas() {
-    rankedDirectory.list()?.forEach { File("$rankedDirectory/$it").delete() }
-    aramDirectory.list()?.forEach { File("$aramDirectory/$it").delete() }
+    //rankedDirectory.list()?.forEach { File("$rankedDirectory/$it").delete() }
+    //aramDirectory.list()?.forEach { File("$aramDirectory/$it").delete() }
     getChampionList(true) // reset cache of champions
     lastSync?.writeText(LocalDateTime.now().toString())
     refreshLastSyncDate()
@@ -302,7 +302,7 @@ fun generateChampPosition(champ: Champion, position: String): MenuItem {
     val menuItem = MenuItem(position)
     val listener = ActionListener {
         GlobalScope.launch {
-            sendChampionPostion(champ, position.toLowerCase())
+            sendChampionPostion(champ, position.toLowerCase(), getCurrentGameMode().await())
         }
     }
     menuItem.addActionListener(listener)

@@ -203,8 +203,8 @@ class SecondaryItemsDatas(source: List<Any>?) {
 }
 
 open class WinTotalDatas(source: List<Any>?) {
-    val win: Int = source!![0] as Int
-    val total: Int = source!![1] as Int
+    val win: Int = source?.get(0) as Int
+    val total: Int = source?.get(1) as Int
     override fun toString(): String {
         return "WinLooseDatas(win=$win, total=$total)"
     }

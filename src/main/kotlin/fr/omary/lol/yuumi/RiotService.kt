@@ -34,11 +34,11 @@ fun getChampionList(force: Boolean = false): List<Champion> {
                 )
 
                 val datas = Klaxon().parseJsonObject(StringReader(championsJson)).get("data") as JsonObject
-                datas.entries.map { Champion(((it.value as JsonObject).get("key") as String).toInt(), it.key) }.toList()
+                datas.entries.map { Champion(((it.value as JsonObject).get("key") as String).toInt(), ((it.value as JsonObject).get("name") as String)) }.toList()
             }.await()
         }
     }
-    return championList
+    return championList.sortedBy { champion -> champion.name }
 }
 
 fun getMapsList(): List<LoLMap> {

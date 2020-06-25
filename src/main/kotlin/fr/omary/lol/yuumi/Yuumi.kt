@@ -17,7 +17,6 @@ private val summonerSpellsByChamp: MutableMap<Champion, List<Triple<String?, Lis
 
 private lateinit var lolItemSetsItemSets: LolItemSetsItemSets
 private lateinit var summoner: LolSummonerSummoner
-private var gameMode: String? = null
 private const val TOKEN = "GENERATED"
 private const val FILL_POSITION = "FILL"
 private const val ARAM_POSITION = "aram"
@@ -36,7 +35,7 @@ private suspend fun waitToGetSummoner(): LolSummonerSummoner? {
     return tempSummoner
 }
 
-private suspend fun refreshAssignerPosition(): String {
+private suspend fun refreshAssignerPosition(gameMode: String?): String {
     val me = getTeam().await()?.first { x -> x.summonerId == summoner.summonerId }
     var assignedPosition = me?.assignedPosition
     if (assignedPosition == null || assignedPosition == "") {
@@ -55,46 +54,46 @@ suspend fun validateChampion(champ: Champion) {
     }
     lastPick = champ to now()
     startLoading("Send [${champ.name}]")
-    gameMode = getCurrentGameMode().await()
-    sendChampionPostion(champ, refreshAssignerPosition())
+    sendChampionPostion(champ, null, getCurrentGameMode().await())
     ready()
 }
 
-suspend fun sendChampionPostion(champ: Champion, position: String) {
-    checkProcessedOrWait(champ)
-    setPerks(champ, position)
-    setItemsSets(champ, position)
-    setSummonerSpells(champ, position)
-    sendSystemNotification(
-        "Champ set ${champ.name} - $position - $gameMode : Sent",
-        "INFO"
-    )
-}
-
-private suspend fun checkProcessedOrWait(champ: Champion) {
-    var timeout = 0
-    while ((!perksByIdChamp.containsKey(champ) || !itemsSetsByIdChamp.containsKey(champ)) && timeout < 20) {
-        println("Waiting process...")
-        delay(500)
-        timeout++
+suspend fun sendChampionPostion(
+    champ: Champion,
+    position: String?,
+    gameMode: String?
+) {
+    val finalPosition = position ?: refreshAssignerPosition(gameMode)
+    val perksOk = setPerks(champ, finalPosition, gameMode)
+    setItemsSets(champ, finalPosition)
+    setSummonerSpells(champ, finalPosition)
+    if (perksOk) {
+        sendSystemNotification(
+            "Champ set ${champ.name} - $finalPosition : Sent",
+            "INFO"
+        )
     }
 }
 
-private suspend fun setPerks(champ: Champion, position: String) {
+private suspend fun setPerks(champ: Champion, position: String, gameMode: String?): Boolean {
     if (perksByIdChamp.containsKey(champ) && perksByIdChamp[champ] != null) {
         resetGeneratedExistingPerks()
-        setCurrentPerk(champ, position)
+        setCurrentPerk(champ, position, gameMode)
         commitPerks(champ)
     } else {
-        println("Perks : no datas")
+        sendSystemNotification(
+            "Champ set ${champ.name} - Not enough datas",
+            "ERROR"
+        )
     }
+    return perksByIdChamp.containsKey(champ) && perksByIdChamp[champ] != null
 }
 
 
 private suspend fun resetGeneratedExistingPerks() =
     getPages().await()?.filter { p -> p.name.endsWith(TOKEN) }?.forEach { deletePage(it).await() }
 
-private fun setCurrentPerk(champ: Champion, position: String) {
+private fun setCurrentPerk(champ: Champion, position: String, gameMode: String?) {
     if (gameMode == ARAM_GAME_MODE) {
         perksByIdChamp[champ]!!.first { p ->
             p.second.name.contains(ARAM_POSITION)

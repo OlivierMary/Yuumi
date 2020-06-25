@@ -27,7 +27,13 @@ fun getUggRankedOverviewDatas(champ: Champion): Deferred<UggDatas?> = GlobalScop
             )
         )
     }
-    Klaxon().parse<UggDatas>(champFile.readText())
+    var result: UggDatas? = null
+    try{
+        result = Klaxon().parse<UggDatas>(champFile.readText())
+    }catch (e: Exception){
+        println("Parse Ranked datas impossible for champion : $champ")
+    }
+    result
 }
 
 
@@ -41,7 +47,13 @@ fun getUggAramOverviewDatas(champ: Champion): Deferred<UggARAMDatas?> = GlobalSc
             )
         )
     }
-    Klaxon().parse<UggARAMDatas>(champFile.readText())
+    var result: UggARAMDatas? = null
+    try{
+        result = Klaxon().parse<UggARAMDatas>(champFile.readText())
+    }catch (e: Exception){
+        println("Parse ARAM datas impossible for champion : $champ")
+    }
+    result
 }
 
 fun getUggVersions(): Deferred<Pair<String, String>> =
