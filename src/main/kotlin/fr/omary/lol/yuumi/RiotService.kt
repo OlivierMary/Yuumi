@@ -25,8 +25,8 @@ fun getRiotVersion(): Deferred<String> = GlobalScope.async {
     Klaxon().parseArray<String>(jsonVersion)?.get(0)!!
 }
 
-fun getChampionList(force: Boolean = false): List<Champion> {
-    if (force || championList.isEmpty()) {
+fun getChampionList(): List<Champion> {
+    if (championList.isEmpty()) {
         runBlocking {
             championList = GlobalScope.async {
                 val championsJson = EntityUtils.toString(

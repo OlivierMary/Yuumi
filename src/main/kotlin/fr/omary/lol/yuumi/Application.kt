@@ -203,9 +203,9 @@ fun automaticReSyncIfDataTooOld() {
 }
 
 fun forceReSyncChampsDatas() {
-    //rankedDirectory.list()?.forEach { File("$rankedDirectory/$it").delete() }
-    //aramDirectory.list()?.forEach { File("$aramDirectory/$it").delete() }
-    getChampionList(true) // reset cache of champions
+    rankedDirectory.list()?.forEach { File("$rankedDirectory/$it").delete() }
+    aramDirectory.list()?.forEach { File("$aramDirectory/$it").delete() }
+    getChampionList() // reset cache of champions
     lastSync?.writeText(LocalDateTime.now().toString())
     refreshLastSyncDate()
     refreshChampionList()
