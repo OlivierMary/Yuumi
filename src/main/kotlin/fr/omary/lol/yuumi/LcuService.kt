@@ -10,7 +10,7 @@ import kotlinx.coroutines.*
 private val api = ClientApi()
 private var socket: ClientWebSocket? = null
 
-fun apiIsConnected():Boolean = api.isConnected
+fun apiIsConnected(): Boolean = api.isConnected
 
 fun startYuumi() {
     println("Waiting for client connect.")

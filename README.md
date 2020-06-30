@@ -29,13 +29,8 @@ Set summoner spell for calculated position
 ## Improvement
  - Clean Generated notification in Lcu
  - Change App name for windows Task Manager it's the jdk name ==> `-Dname` not working
- - Make a screen with all champ icons + all possible position to send datas
- - `/lol-perks/v1/inventory` to check how many page Yuumi can create  ==> reduce delete > create > delete > create ...
+ - Make a screen with all champ icons
 
 ## Refactor
- - DTO for yuumi tools and not from ugg + parse ugg -> new dto
  - Not dependent of com.github.stirante:lol-client-java-api
  
-## Fix
- - On new caches somes datas are empty the first day => change the way of parsing datas may solve this.
-
